@@ -4,7 +4,7 @@ This is a tool that uses OKLCH color mechanics to generate a custom css color pa
 
 ## How the user interacts with the tool
 
-The main user input is a list of input rows which the user can add or remove, each row includes 3 input fields that correspond to the 3 distinct aspects of the OKLCH specification. The first input is Lightness as a percentage, the second input is Chroma as a unitless value between 0 and 0.35, the third input is Hue as an angle in degrees. When the user adds a new row, it should be pre-populated with the values of the last row.
+The main user input is a list of input rows which the user can add or remove, each row includes 3 input fields that correspond to the 3 distinct aspects of the OKLCH specification. The first input is Lightness as a percentage, the second input is Chroma as a unitless value between 0 and 0.35, the third input is Hue as an angle in degrees. When the user adds a new row, it should be pre-populated with the values of the last row. Rows can be dragged to re-arrange the order.
 
 ## Charts
 
