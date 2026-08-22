@@ -16,7 +16,9 @@ This chart is a horizontal 2D cross section of the CIELAB color space at the spe
 
 One coordinate for the slice is the angle around the origin in degrees, and the other co-ordinate is the chroma (how for away from the origin). The shape of the slice should represent all possible colors for the given lightness level, and therefore the shape of the slice is very important to get right.
 
-The current Chroma value of the selected row should present as a circle/ring around the origin with radius equal to the Chroma. The chroma ring may intersect with the slice
+The current Chroma value of the selected row should present as a thin circle/ring centered around the origin with radius equal to the Chroma. The chroma ring may intersect with the slice
+
+The current hue value of the selected row presents as a thin straight line pointing from the origin out to the edge, with a length of 0.35. This line is expected to intersect with the chroma ring and the slice.
 
 ### Lightness scale linear indicator
 
@@ -45,3 +47,5 @@ Code block of css variables which the user can copy-paste into their projects. T
 --color-1200: #0e0e21;
 --color-1300: #070710;
 ```
+
+Where a color does not map to a hex value, a fallback is calculated by reducing the chroma value until it does.
