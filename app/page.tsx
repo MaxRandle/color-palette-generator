@@ -1,12 +1,11 @@
 import { ColorTiles } from "./color-tiles";
 import { CopyButton } from "./copy-button";
 import { formatCss } from "@/core/css";
-import { renderPalette } from "@/core/render";
+import { cellsOf } from "@/core/cells";
 import { STARTER_PALETTE } from "@/core/starter-palette";
 
 export default function Home() {
   const palette = STARTER_PALETTE;
-  const stops = renderPalette(palette);
   const css = formatCss(palette);
 
   return (
@@ -21,12 +20,14 @@ export default function Home() {
         </p>
       </header>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium tracking-wide text-zinc-500 uppercase">
-          Colours
-        </h2>
-        <ColorTiles stops={stops} />
-      </section>
+      {palette.spectrums.map((spectrum) => (
+        <section key={spectrum.id} className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium tracking-wide text-zinc-500 uppercase">
+            {spectrum.name}
+          </h2>
+          <ColorTiles cells={cellsOf(palette, spectrum)} />
+        </section>
+      ))}
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4">

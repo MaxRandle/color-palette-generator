@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Oklch CSS palette generator",
   description:
-    "Hand-author a CSS colour palette in Oklch and copy it out as custom properties.",
+    "Hand-author a CSS color palette in Oklch and copy it out as custom properties.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

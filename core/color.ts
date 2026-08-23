@@ -2,7 +2,7 @@ import { converter, formatHex, type Oklch } from "culori";
 import type { Row, Spectrum } from "./palette";
 
 /**
- * A colour in the authoring space. Lightness is a percentage (0–100), Chroma is
+ * A color in the authoring space. Lightness is a percentage (0–100), Chroma is
  * unitless (0–0.35), Hue is degrees (0–360).
  */
 export type OklchColor = {
@@ -14,7 +14,7 @@ export type OklchColor = {
 export type ResolvedColor = {
   /** What the user authored. Never overwritten by its Fallback. */
   readonly authored: OklchColor;
-  /** The Fallback when the authored colour is outside the sRGB region, else the authored colour. */
+  /** The Fallback when the authored color is outside the sRGB region, else the authored color. */
   readonly rendered: OklchColor;
   /** The hex form of `rendered`. */
   readonly hex: string;
@@ -44,7 +44,7 @@ const toSrgb = converter("rgb");
  */
 const CHANNEL_TOLERANCE = 0.5 / 255;
 
-/** Whether a colour maps to a hex value, and so needs no Fallback. */
+/** Whether a color maps to a hex value, and so needs no Fallback. */
 export function isInSrgb(color: OklchColor): boolean {
   const { r, g, b } = toSrgb(toCulori(color));
   return [r, g, b].every(
@@ -53,7 +53,7 @@ export function isInSrgb(color: OklchColor): boolean {
   );
 }
 
-export function toHex(color: OklchColor): string {
+function toHex(color: OklchColor): string {
   return formatHex(toCulori(color));
 }
 
@@ -68,7 +68,7 @@ const FALLBACK_PRECISION = 0.00005;
  * maps to a hex value. Binary search, never RGB clipping — clipping moves the
  * channels independently and shifts the Hue.
  */
-export function fallbackFor(color: OklchColor): OklchColor {
+function fallbackFor(color: OklchColor): OklchColor {
   let inside = 0;
   let outside = color.chroma;
   while (outside - inside > FALLBACK_PRECISION) {
@@ -82,7 +82,7 @@ export function fallbackFor(color: OklchColor): OklchColor {
   return { ...color, chroma: inside };
 }
 
-/** Resolve one Spectrum's Stop at one Row into a colour ready to render and export. */
+/** Resolve one Spectrum's Stop at one Row into a color ready to render and export. */
 export function resolve(row: Row, spectrum: Spectrum): ResolvedColor {
   const stop = row.stops[spectrum.id];
   const authored: OklchColor = {

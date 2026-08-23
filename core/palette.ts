@@ -11,7 +11,7 @@ export type Stop = {
   readonly hue: number;
 };
 
-/** One named ramp of colours across every Socket. */
+/** One named ramp of colors across every Socket. */
 export type Spectrum = {
   readonly id: string;
   readonly name: string;
@@ -45,7 +45,7 @@ export type OccupiedSocket = {
 };
 
 /** A Socket's number is a property of its position, not of its occupant. */
-export function socketNumberAt(index: number): number {
+function socketNumberAt(index: number): number {
   return (index + 1) * 100;
 }
 

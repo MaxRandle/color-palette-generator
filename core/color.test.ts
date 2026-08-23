@@ -10,9 +10,9 @@ function row(lightness: number, chroma: number, hue: number): Row {
 }
 
 describe("resolve", () => {
-  // Expected values are the CSS Color 4 sample conversions of the sRGB
-  // primaries, which the CSS Color 4 matrices reproduce and Ottosson's
-  // originals do not to this precision.
+  // The CSS Color 4 sample conversions of the sRGB primaries. Hex output is
+  // too coarse to tell the two matrix sets apart — see the provenance test
+  // below — so these pin correctness, not provenance.
   it.each([
     ["white", row(100, 0, 0), "#ffffff"],
     ["black", row(0, 0, 0), "#000000"],
@@ -31,7 +31,7 @@ describe("resolve", () => {
     });
   });
 
-  it("reports no fallback for a colour already inside the sRGB region", () => {
+  it("reports no fallback for a color already inside the sRGB region", () => {
     const resolved = resolve(row(60, 0.1, 250), brand);
     expect(resolved.fellBack).toBe(false);
     expect(resolved.rendered).toEqual(resolved.authored);
@@ -42,7 +42,7 @@ describe("Fallback", () => {
   const authoredChroma = 0.35;
   const outOfGamut = row(60, authoredChroma, 250);
 
-  it("reports that a colour outside the sRGB region fell back", () => {
+  it("reports that a color outside the sRGB region fell back", () => {
     expect(resolve(outOfGamut, brand).fellBack).toBe(true);
   });
 
@@ -69,5 +69,40 @@ describe("Fallback", () => {
     const clipped = converter("oklch")(clampRgb(oklch({ mode: "oklch", l: 0.6, c: 0.35, h: 250 })));
     expect(clipped.h).not.toBeCloseTo(250, 1);
     expect(rendered.hue).toBeCloseTo(250, 10);
+  });
+});
+
+describe("matrix provenance", () => {
+  /**
+   * Ottosson's original Oklab coefficients, as published in "A perceptual color
+   * space for image processing" (2020). CSS Color 4 carries the same matrices
+   * re-derived at higher precision; the two agree to roughly 1e-8, which 8-bit
+   * hex rounding hides entirely.
+   */
+  function ottossonLinearSrgb(l: number, c: number, h: number) {
+    const a = c * Math.cos((h * Math.PI) / 180);
+    const b = c * Math.sin((h * Math.PI) / 180);
+    const L = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const M = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const S = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    return [
+      4.0767416621 * L - 3.3077115913 * M + 0.2309699292 * S,
+      -1.2684380046 * L + 2.6097574011 * M - 0.3413193965 * S,
+      -0.0041960863 * L - 0.7034186147 * M + 1.707614701 * S,
+    ];
+  }
+
+  const sample = { l: 0.6, c: 0.15, h: 250 };
+
+  it("resolves through the CSS Color 4 matrices, not Ottosson's originals", () => {
+    const culori = converter("lrgb")({ mode: "oklch", ...sample });
+    const ottosson = ottossonLinearSrgb(sample.l, sample.c, sample.h);
+    const channels = [culori.r, culori.g, culori.b];
+
+    // Close enough to be the same matrices, distinct enough to tell which.
+    channels.forEach((channel, i) => {
+      expect(channel).toBeCloseTo(ottosson[i], 7);
+      expect(channel).not.toBe(ottosson[i]);
+    });
   });
 });

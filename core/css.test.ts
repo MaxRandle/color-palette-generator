@@ -37,7 +37,7 @@ describe("formatCss", () => {
     expect(lines[3]).toBe("--color-accent-100: #ffffff;");
   });
 
-  it("marks lines whose colour fell back with a trailing comment", () => {
+  it("marks lines whose color fell back with a trailing comment", () => {
     const withFallback: Palette = {
       ...palette,
       rows: [row(100, 0, 0), row(60, 0.35, 250)],
