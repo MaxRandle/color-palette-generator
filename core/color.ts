@@ -3,7 +3,7 @@ import type { Row, Spectrum } from "./palette";
 
 /**
  * A color in the authoring space. Lightness is a percentage (0–100), Chroma is
- * unitless (0–0.35), Hue is degrees (0–360).
+ * unitless (0–0.5), Hue is degrees (0–360).
  */
 export type OklchColor = {
   readonly lightness: number;

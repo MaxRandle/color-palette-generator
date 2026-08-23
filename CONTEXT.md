@@ -16,8 +16,10 @@ The first Oklch component, entered as a percentage from 0% to 100%.
 _Avoid_: Luminance, brightness, value
 
 **Chroma**:
-The second Oklch component, a unitless value from 0 to 0.35. Distance from the neutral
-axis — how saturated the color is.
+The second Oklch component, a unitless value from 0 to 0.5. Distance from the neutral
+axis — how saturated the color is. The 0.5 ceiling is the authoring bound, matching the
+Cross-section's radial axis; it sits outside the sRGB region at every Hue, so values near
+it are legal to author and fall back on export.
 _Avoid_: Saturation, intensity
 
 **Hue**:

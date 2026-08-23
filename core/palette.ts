@@ -5,7 +5,7 @@
 
 /** One Spectrum's contribution at one Row: Chroma and Hue, never Lightness. */
 export type Stop = {
-  /** Unitless, 0 to 0.35. */
+  /** Unitless, 0 to 0.5. */
   readonly chroma: number;
   /** Degrees, 0 to 360. */
   readonly hue: number;
