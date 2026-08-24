@@ -180,6 +180,31 @@ export function wheelColor(lightness: number, hue: number): OklchColor {
 }
 
 /**
+ * Which way a marker drawn over the slice has to go to be seen: `light` ink on
+ * a dark slice, `dark` ink on a light one.
+ */
+export type Ink = "light" | "dark";
+
+/**
+ * Where the ink flips, in Lightness. Read off the chart rather than derived:
+ * the slice is a field of colour at full Chroma, not a grey card, so the point
+ * where dark ink starts winning sits above the midpoint.
+ */
+export const INK_FLIP = 62;
+
+/**
+ * The ink for markers drawn over a slice at this Lightness.
+ *
+ * There is one answer per slice rather than one per pixel because a slice is
+ * one Lightness everywhere: that is what a Cross-section is. Whatever a marker
+ * happens to cross — a vivid Hue or the neutral axis — it crosses at the same
+ * Lightness, so the contrast question is answered once, by the slice.
+ */
+export function inkFor(lightness: number): Ink {
+  return lightness < INK_FLIP ? "light" : "dark";
+}
+
+/**
  * A coordinate as it should reach the DOM. Rounded, because the server and the
  * browser disagree in the last bit or two of `Math.cos`, and React reads that
  * as a hydration mismatch. Three decimals is far finer than the chart can show.

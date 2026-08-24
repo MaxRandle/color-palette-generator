@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { CHROMA_MAX, isInSrgb, maxSrgbChroma } from "./color";
 import {
+  INK_FLIP,
   chromaAndHueAt,
   chromaAt,
+  inkFor,
   hueWheel,
   plot,
   polar,
@@ -263,5 +265,27 @@ describe("wheelColor", () => {
 
   it("keeps the Lightness and Hue it was asked for", () => {
     expect(wheelColor(42, 137)).toMatchObject({ lightness: 42, hue: 137 });
+  });
+});
+
+describe("inkFor", () => {
+  it("marks a dark slice in light ink and a light slice in dark", () => {
+    expect(inkFor(0)).toBe("light");
+    expect(inkFor(25)).toBe("light");
+    expect(inkFor(95)).toBe("dark");
+    expect(inkFor(100)).toBe("dark");
+  });
+
+  it("flips once, so the markers never trade legibility for a second flip", () => {
+    const flips = Array.from({ length: 201 }, (_, step) => inkFor(step / 2))
+      .filter((ink, step, all) => step > 0 && ink !== all[step - 1]);
+    expect(flips).toHaveLength(1);
+  });
+
+  it("flips where the slice stops being darker than its own markers", () => {
+    // The whole slice is one Lightness, so this is one decision per slice
+    // rather than a judgement per pixel.
+    expect(inkFor(INK_FLIP - 0.5)).toBe("light");
+    expect(inkFor(INK_FLIP)).toBe("dark");
   });
 });

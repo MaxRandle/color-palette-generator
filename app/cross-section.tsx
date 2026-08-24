@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import {
   hueWheel,
+  inkFor,
   plot,
   polar,
   radiusOf,
@@ -15,6 +16,7 @@ import {
 import type { OklchColor } from "@/core/color";
 import { CHROMA_MAX } from "@/core/color";
 import { sliceField } from "@/core/cross-section-field";
+import type { Ink } from "@/core/cross-section";
 import type { Reading } from "@/core/selection";
 
 /** The chart's side, in SVG user units; it scales to whatever box it is given. */
@@ -48,6 +50,27 @@ const MARKED_HUES = Array.from({ length: 12 }, (_, turn) => turn * 30);
 const TICK_FROM = RIM + WHEEL_WIDTH / 2;
 const TICK_TO = TICK_FROM + 5;
 const LABEL_AT = TICK_TO + 13;
+
+/**
+ * The two inks, as strokes and as the casing under the accent. Near-black
+ * rather than black and near-white rather than white: the field is the subject,
+ * and a marker only has to be read, not to shout.
+ */
+const INK_STROKE: Record<Ink, string> = {
+  light: "stroke-zinc-100",
+  dark: "stroke-zinc-900",
+};
+
+/**
+ * The casing's width, and how far it is let down towards the field. It is a
+ * halo for the accent to sit in, not a second marker: at full strength on a
+ * pale slice it reads as the marker itself and the accent disappears inside it.
+ */
+const CASING_WIDTH = 3;
+const CASING_OPACITY = 0.55;
+
+/** The accent's own width, wide enough to still be a line inside the casing. */
+const MARKER_WIDTH = 1.5;
 
 /**
  * The plotted area as a fraction of the viewBox, so the raster layer lands on
@@ -111,6 +134,22 @@ function SliceField({ lightness }: { lightness: number }) {
 export function CrossSection({ reading }: { reading: Reading }) {
   const { lightness, chroma, hue } = reading.color;
   const hueLineEnd = plot(CHROMA_MAX, hue, SIZE);
+  const ink = inkFor(lightness);
+
+  /* Out to the radial maximum rather than to the Row's own Chroma: the line
+     says which Hue is being edited, the ring says how much Chroma. Held as one
+     shape so the casing and the accent cannot drift apart. */
+  const markers = (
+    <>
+      <line
+        x1={RIM}
+        y1={RIM}
+        x2={svgCoordinate(hueLineEnd.x)}
+        y2={svgCoordinate(hueLineEnd.y)}
+      />
+      <circle cx={RIM} cy={RIM} r={svgCoordinate(radiusOf(chroma, SIZE))} />
+    </>
+  );
 
   return (
     <div className="relative aspect-square w-full max-w-sm">
@@ -164,26 +203,28 @@ export function CrossSection({ reading }: { reading: Reading }) {
           d={toPath(outlineOf(srgbRegionBoundary(lightness), SIZE))}
           fill="none"
           strokeWidth={1}
-          className="stroke-zinc-600 dark:stroke-zinc-300"
+          className={INK_STROKE[ink]}
         />
-        {/* Out to the radial maximum rather than to the Row's own Chroma: the
-            line says which Hue is being edited, the ring says how much Chroma. */}
-        <line
-          x1={RIM}
-          y1={RIM}
-          x2={svgCoordinate(hueLineEnd.x)}
-          y2={svgCoordinate(hueLineEnd.y)}
-          strokeWidth={1}
-          className="stroke-sky-600 dark:stroke-sky-400"
-        />
-        <circle
-          cx={RIM}
-          cy={RIM}
-          r={svgCoordinate(radiusOf(chroma, SIZE))}
+        {/* Drawn twice: a casing in the slice's own ink, then the accent over
+            it. The accent is the selection's identity and is worth keeping at
+            one color, so it is the casing that does the contrasting — and where
+            the markers run past the Boundary onto the bare backdrop, where the
+            casing has nothing to contrast with, the accent reads on its own. */}
+        <g
           fill="none"
-          strokeWidth={1}
+          className={INK_STROKE[ink]}
+          strokeWidth={CASING_WIDTH}
+          opacity={CASING_OPACITY}
+        >
+          {markers}
+        </g>
+        <g
+          fill="none"
+          strokeWidth={MARKER_WIDTH}
           className="stroke-sky-600 dark:stroke-sky-400"
-        />
+        >
+          {markers}
+        </g>
       </svg>
     </div>
   );
