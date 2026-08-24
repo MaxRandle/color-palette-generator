@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ColorTiles } from "./color-tiles";
 import { CrossSection } from "./cross-section";
 import { CopyButton } from "./copy-button";
+import { LightnessScale } from "./lightness-scale";
 import { PrefixField } from "./prefix-field";
 import { RowLadder } from "./row-ladder";
 import { cellsOf } from "@/core/cells";
@@ -38,6 +39,20 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
         <RowLadder
           palette={palette}
           spectrum={spectrum}
+          onChange={setPalette}
+          selected={selectedIndex(palette, selection)}
+          onSelect={setSelection}
+        />
+      </section>
+
+      {/* The scale belongs to the whole Palette rather than to one Row, so it
+          sits outside the ladder rather than inside it. */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium tracking-wide text-zinc-500 uppercase">
+          Lightness scale
+        </h2>
+        <LightnessScale
+          palette={palette}
           onChange={setPalette}
           selected={selectedIndex(palette, selection)}
           onSelect={setSelection}

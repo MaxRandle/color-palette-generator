@@ -82,6 +82,20 @@ One named ramp of colors across every Socket. Contributes only Chroma and Hue â€
 Lightness. v1 has exactly one.
 _Avoid_: Ramp, scale, palette (a Palette contains Spectrums)
 
+**Lightness scale**:
+The single track carrying one marker per Row at its Lightness, from 0% at the black end
+to 100% at the white end. It belongs to the whole Palette, so its track is neutral rather
+than tinted with any Spectrum's colors, and it carries no labels: the numbers are in the
+ladder and the scale's job is spacing. A drag snaps to 0.5%; typing does not.
+_Avoid_: Lightness slider, ramp bar (and note "scale" alone still never means a Spectrum)
+
+**Reversal**:
+A step between two adjacent Sockets that runs against the direction the ladder started
+in, which is what makes a ladder non-monotonic in Lightness. Reported to the user and
+never prevented: clamping the drag would stop it with no explanation and re-sorting would
+rearrange the ladder mid-drag, and both override an explicit action.
+_Avoid_: Inversion, out-of-order row
+
 **Palette code**:
 The whole Palette written as one versioned string, carried in the URL fragment and in
 localStorage. It stores authored Oklch values, never their Fallbacks, so a shared Palette
