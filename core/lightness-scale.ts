@@ -60,40 +60,31 @@ export function nudgedLightness(lightness: number, direction: number): number {
   return draggedLightness(stepped / LIGHTNESS_MAX);
 }
 
-/** Two adjacent Sockets whose step runs against the rest of the ladder. */
-export type LightnessReversal = {
-  /** The higher of the pair in the ladder, so the lower Socket number. */
-  readonly above: Socket;
-  readonly below: Socket;
-};
-
 /** Which way a step runs, or 0 where two Rows share a Lightness. */
 function directionOf(from: number, to: number): number {
   return Math.sign(to - from);
 }
 
 /**
- * Every step in the ladder that turns back on the direction the ladder started
- * in. A ladder is monotonic when it only ever darkens or only ever lightens;
- * either direction is legal, so the first step that goes anywhere sets which
- * one this ladder is in, and Rows sharing a Lightness are passed over rather
- * than counted against it.
+ * Whether the ladder turns back on itself: some step in it runs against the
+ * direction the ladder started in. A ladder is monotonic while it only ever
+ * darkens or only ever lightens; either direction is legal, so the first step
+ * that goes anywhere sets which one this ladder is in, and Rows sharing a
+ * Lightness are passed over rather than counted against it.
  *
  * Reported, never prevented: clamping a drag would stop it with no explanation
  * and re-sorting would rearrange the user's ladder mid-drag, so both override an
  * explicit action. The caller shows this; the Palette keeps it.
+ *
+ * One answer for the whole ladder rather than the offending pairs, because the
+ * warning says only that the order has gone: which Rows they are is read off
+ * the ladder and the scale, both of which are already on screen.
  */
-export function lightnessReversals(palette: Palette): LightnessReversal[] {
-  const ladder = socketsOf(palette);
-  const steps = ladder.slice(1).map((below, at) => ({
-    above: ladder[at].socket,
-    below: below.socket,
-    direction: directionOf(ladder[at].row.lightness, below.row.lightness),
-  }));
-  const ladderDirection = steps.find((step) => step.direction !== 0)?.direction;
-  return steps
-    .filter(
-      (step) => step.direction !== 0 && step.direction !== ladderDirection,
-    )
-    .map(({ above, below }) => ({ above, below }));
+export function ladderTurnsBack(palette: Palette): boolean {
+  const rows = palette.rows;
+  const steps = rows
+    .slice(1)
+    .map((row, at) => directionOf(rows[at].lightness, row.lightness))
+    .filter((direction) => direction !== 0);
+  return steps.some((direction) => direction !== steps[0]);
 }

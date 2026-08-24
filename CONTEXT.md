@@ -90,12 +90,13 @@ and it carries no labels: the numbers are in the ladder and the scale's job is s
 A drag snaps to 0.5%; typing does not.
 _Avoid_: Lightness slider, ramp bar (and note "scale" alone still never means a Spectrum)
 
-**Reversal**:
-A step between two adjacent Sockets that runs against the direction the ladder started
-in, which is what makes a ladder non-monotonic in Lightness. Reported to the user and
-never prevented: clamping the drag would stop it with no explanation and re-sorting would
-rearrange the ladder mid-drag, and both override an explicit action.
-_Avoid_: Inversion, out-of-order row
+**Turning back**:
+What a ladder does when some step in it runs against the direction it started in, which
+is what makes it non-monotonic in Lightness. Reported to the user as one warning about
+the ladder, never per pair and never prevented: clamping the drag would stop it with no
+explanation and re-sorting would rearrange the ladder mid-drag, and both override an
+explicit action.
+_Avoid_: Inversion, reversal, out-of-order row
 
 **Palette code**:
 The whole Palette written as one versioned string, carried in the URL fragment and in

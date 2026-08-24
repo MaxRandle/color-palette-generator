@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   draggedLightness,
-  lightnessReversals,
+  ladderTurnsBack,
   markersOf,
   nudgedLightness,
 } from "./lightness-scale";
@@ -22,19 +22,21 @@ function ladder(...lightnesses: number[]): Palette {
 
 describe("markersOf", () => {
   it("draws one marker per Row, carrying the Socket it sits at", () => {
-    expect(markersOf(ladder(95, 60, 25)).map((marker) => marker.socket.number)).toEqual([
-      100, 200, 300,
-    ]);
+    expect(
+      markersOf(ladder(95, 60, 25)).map((marker) => marker.socket.number),
+    ).toEqual([100, 200, 300]);
   });
 
   it("places a marker at its Row's true Lightness along the track", () => {
-    expect(markersOf(ladder(0, 25.5, 100)).map((marker) => marker.position)).toEqual([
-      0, 0.255, 1,
-    ]);
+    expect(
+      markersOf(ladder(0, 25.5, 100)).map((marker) => marker.position),
+    ).toEqual([0, 0.255, 1]);
   });
 
   it("names the index the marker edits, so a drag reaches the Row", () => {
-    expect(markersOf(ladder(95, 60)).map((marker) => marker.index)).toEqual([0, 1]);
+    expect(markersOf(ladder(95, 60)).map((marker) => marker.index)).toEqual([
+      0, 1,
+    ]);
   });
 });
 
@@ -72,43 +74,36 @@ describe("nudgedLightness", () => {
   });
 });
 
-describe("lightnessReversals", () => {
-  it("reports nothing while the ladder darkens all the way down", () => {
-    expect(lightnessReversals(ladder(95, 60, 25))).toEqual([]);
+describe("ladderTurnsBack", () => {
+  it("stays quiet while the ladder darkens all the way down", () => {
+    expect(ladderTurnsBack(ladder(95, 60, 25))).toBe(false);
   });
 
-  it("reports nothing while the ladder lightens all the way down", () => {
-    expect(lightnessReversals(ladder(25, 60, 95))).toEqual([]);
+  it("stays quiet while the ladder lightens all the way down", () => {
+    expect(ladderTurnsBack(ladder(25, 60, 95))).toBe(false);
   });
 
-  it("reports nothing for a ladder too short to have a direction", () => {
-    expect(lightnessReversals(ladder(60))).toEqual([]);
+  it("stays quiet for a ladder too short to have a direction", () => {
+    expect(ladderTurnsBack(ladder(60))).toBe(false);
   });
 
-  it("names the Sockets either side of a step that turns back", () => {
-    expect(lightnessReversals(ladder(95, 25, 60))).toEqual([
-      { above: { number: 200 }, below: { number: 300 } },
-    ]);
+  it("fires on a step that runs against the ladder", () => {
+    expect(ladderTurnsBack(ladder(95, 25, 60))).toBe(true);
   });
 
-  it("reports every step that turns back, not just the first", () => {
-    expect(lightnessReversals(ladder(95, 25, 60, 10, 40))).toEqual([
-      { above: { number: 200 }, below: { number: 300 } },
-      { above: { number: 400 }, below: { number: 500 } },
-    ]);
+  it("fires once however many steps turn back", () => {
+    expect(ladderTurnsBack(ladder(95, 25, 60, 10, 40))).toBe(true);
   });
 
   it("takes the ladder's direction from its first step, whichever way it runs", () => {
-    expect(lightnessReversals(ladder(25, 60, 40))).toEqual([
-      { above: { number: 200 }, below: { number: 300 } },
-    ]);
+    expect(ladderTurnsBack(ladder(25, 60, 40))).toBe(true);
   });
 
-  it("lets two Rows share a Lightness without calling it a reversal", () => {
-    expect(lightnessReversals(ladder(95, 60, 60, 25))).toEqual([]);
+  it("lets two Rows share a Lightness without calling it a turn", () => {
+    expect(ladderTurnsBack(ladder(95, 60, 60, 25))).toBe(false);
   });
 
   it("looks past a shared Lightness to the direction either side of it", () => {
-    expect(lightnessReversals(ladder(95, 95, 60, 25))).toEqual([]);
+    expect(ladderTurnsBack(ladder(95, 95, 60, 25))).toBe(false);
   });
 });

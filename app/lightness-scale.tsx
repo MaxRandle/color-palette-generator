@@ -5,10 +5,9 @@ import { LIGHTNESS_MAX } from "@/core/color";
 import { setLightness } from "@/core/edits";
 import {
   draggedLightness,
-  lightnessReversals,
+  ladderTurnsBack,
   markersOf,
   nudgedLightness,
-  type LightnessReversal,
 } from "@/core/lightness-scale";
 import type { Palette } from "@/core/palette";
 import type { Selection } from "@/core/selection";
@@ -71,7 +70,7 @@ export function LightnessScale({
   return (
     /* The padding is half a marker: the end markers straddle 0% and 100%
        rather than being pushed inside the track to stay in the box. */
-    <div role="group" aria-label="Lightness scale" className="py-1.5">
+    <div role="group" aria-label="Lightness scale">
       <div
         ref={track}
         className={`relative h-full w-8 rounded-md ring-1 ring-zinc-300 dark:ring-zinc-700 ${MIN_HEIGHT}`}
@@ -145,22 +144,13 @@ export function LightnessScale({
 }
 
 /**
- * What the warning says, or nothing while the ladder runs one way. The whole
- * sentence is built here rather than split around a joined list, so the reading
- * of it is in one place.
- */
-function warningFor(reversals: readonly LightnessReversal[]): string {
-  if (reversals.length === 0) return "";
-  const pairs = reversals.map(
-    ({ above, below }) => `sockets ${above.number} and ${below.number}`,
-  );
-  return `Lightness turns back between ${pairs.join(", and between ")}, so the ladder no longer runs one way.`;
-}
-
-/**
- * A ladder that turns back on itself, named. Reported, never prevented: the
- * ladder is allowed to stay this way, so the warning says what is out of order
- * and leaves the Palette alone.
+ * A ladder that turns back on itself, reported. Never prevented: the ladder is
+ * allowed to stay this way, so the warning says the order has gone and leaves
+ * the Palette alone.
+ *
+ * It says that much and no more. Which Rows are out of order is read off the
+ * ladder and the scale beside it, both already on screen, and a warning that
+ * named every pair would grow with the fault it is reporting.
  *
  * It sits below the ladder rather than in the scale's own column, because it is
  * a sentence about the whole ladder and the track is one marker wide.
@@ -170,7 +160,9 @@ export function LadderOrderWarning({ palette }: { palette: Palette }) {
     /* The element stays in the document while there is nothing to say, so the
        warning is spoken when it appears rather than only when read. */
     <p role="status" className="text-sm text-amber-600 dark:text-amber-500">
-      {warningFor(lightnessReversals(palette))}
+      {ladderTurnsBack(palette)
+        ? "Some rows are out of order: the ladder's lightness turns back instead of running one way."
+        : ""}
     </p>
   );
 }
