@@ -4,7 +4,12 @@
  * Chroma.
  */
 
-import { CHROMA_MAX, maxSrgbChroma } from "./color";
+import {
+  CHROMA_MAX,
+  fallbackFor,
+  maxSrgbChroma,
+  type OklchColor,
+} from "./color";
 import { maxChroma } from "./gamut/max-chroma";
 
 export type Point = { readonly x: number; readonly y: number };
@@ -92,7 +97,7 @@ export type HueArc = {
  */
 export function hueWheel(size: number): readonly HueArc[] {
   const radius = radiusOf(CHROMA_MAX, size);
-  const sweep = radius.toFixed(3);
+  const sweep = svgCoordinate(radius);
   return Array.from({ length: 360 }, (_, hue) => {
     const from = plot(CHROMA_MAX, hue, size);
     const to = plot(CHROMA_MAX, hue + 1 + ARC_OVERLAP, size);
@@ -100,9 +105,43 @@ export function hueWheel(size: number): readonly HueArc[] {
       hue,
       // Sweep flag 1: Hue runs clockwise on screen, which is the direction
       // SVG's positive sweep goes once its y axis is pointing down.
-      path: `M${from.x.toFixed(3)} ${from.y.toFixed(3)} A${sweep} ${sweep} 0 0 1 ${to.x.toFixed(3)} ${to.y.toFixed(3)}`,
+      path: `${step("M", from)} A${sweep} ${sweep} 0 0 1 ${step("", to)}`,
     };
   });
+}
+
+/**
+ * One Hue on the rim, with as much Chroma as the sRGB region holds at this
+ * Lightness. It asks for the authoring ceiling and takes what it can get, so
+ * each arc is the most vivid color there is where it sits.
+ *
+ * Through the Fallback rather than straight into an `oklch()` a browser would
+ * have to gamut map: handed a color outside its gamut, a browser clips the
+ * channels one by one, which shifts the Hue. At 100% Lightness the rim came back
+ * magenta and yellow where white is the only color there is, and at 0% it came
+ * back red and green rather than black.
+ *
+ * The Lightness is the slice's own, which is on trial: it shows the rim in the
+ * colors the slice can really reach, but towards either end of the Lightness
+ * axis there is so little Chroma to be had that the wheel stops working as a Hue
+ * indicator at all.
+ */
+export function wheelColor(lightness: number, hue: number): OklchColor {
+  return fallbackFor({ lightness, chroma: CHROMA_MAX, hue });
+}
+
+/**
+ * A coordinate as it should reach the DOM. Rounded, because the server and the
+ * browser disagree in the last bit or two of `Math.cos`, and React reads that
+ * as a hydration mismatch. Three decimals is far finer than the chart can show.
+ */
+export function svgCoordinate(value: number): number {
+  return Number(value.toFixed(3));
+}
+
+/** A point as an SVG path command: the letter, then the coordinates. */
+function step(command: string, { x, y }: Point): string {
+  return `${command}${svgCoordinate(x)} ${svgCoordinate(y)}`;
 }
 
 /** An outline as a closed SVG path. */

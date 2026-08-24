@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHROMA_MAX } from "./color";
+import { CHROMA_MAX, isInSrgb } from "./color";
 import {
   hueWheel,
   plot,
@@ -8,6 +8,7 @@ import {
   srgbRegionOutline,
   toPath,
   visibleGamutOutline,
+  wheelColor,
 } from "./cross-section";
 
 const SIZE = 100;
@@ -144,13 +145,13 @@ describe("hueWheel", () => {
   it("starts each arc at its own Hue on the rim", () => {
     const wheel = hueWheel(SIZE);
     // Hue 0 is straight up and 90 is to the right, on a rim of radius 50.
-    expect(wheel[0].path).toMatch(/^M50\.000 0\.000 A50/);
-    expect(wheel[90].path).toMatch(/^M100\.000 50\.000 A50/);
+    expect(wheel[0].path).toMatch(/^M50 0 A50/);
+    expect(wheel[90].path).toMatch(/^M100 50 A50/);
   });
 
   it("sweeps the way Hue runs, so the arcs go clockwise round the rim", () => {
     // The sweep flag is the last of the arc's flags: 1 is clockwise on screen.
-    expect(hueWheel(SIZE)[0].path).toContain("A50.000 50.000 0 0 1");
+    expect(hueWheel(SIZE)[0].path).toContain("A50 50 0 0 1");
   });
 });
 
@@ -166,5 +167,27 @@ describe("polar", () => {
     const { x, y } = polar(65, 90, SIZE);
     expect(x).toBeCloseTo(115, 10);
     expect(y).toBeCloseTo(50, 10);
+  });
+});
+
+describe("wheelColor", () => {
+  it("stays inside sRGB, so no browser has to map it and shift the Hue", () => {
+    // The bug this replaced: an out-of-gamut oklch() handed to the browser came
+    // back magenta at 100% Lightness, where white is the only color there is.
+    for (const lightness of [0, 25, 60, 95, 100]) {
+      for (const hue of [0, 90, 180, 270]) {
+        expect(isInSrgb(wheelColor(lightness, hue))).toBe(true);
+      }
+    }
+  });
+
+  it("takes all the Chroma sRGB holds there", () => {
+    // oklch(62.8% 0.2577 29.23) is #ff0000: the Boundary at that Lightness and
+    // Hue, so the rim should be painted at exactly that Chroma.
+    expect(wheelColor(62.8, 29.23).chroma).toBeCloseTo(0.2577, 3);
+  });
+
+  it("keeps the Lightness and Hue it was asked for", () => {
+    expect(wheelColor(42, 137)).toMatchObject({ lightness: 42, hue: 137 });
   });
 });

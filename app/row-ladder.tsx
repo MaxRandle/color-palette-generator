@@ -11,15 +11,16 @@ import {
   setLightness,
 } from "@/core/edits";
 import { socketsOf, type Palette, type Spectrum } from "@/core/palette";
+import { selectionAfterRemoving, type Selection } from "@/core/selection";
 
 type RowLadderProps = {
   palette: Palette;
   /** The Spectrum whose Stop each Row edits. v1 has exactly one. */
   spectrum: Spectrum;
   onChange: (palette: Palette) => void;
-  /** The position of the Row the Cross-section is following. */
-  selected: number;
-  onSelect: (index: number) => void;
+  /** The Row the Cross-section is following. */
+  selected: Selection;
+  onSelect: (selection: Selection) => void;
 };
 
 /**
@@ -27,6 +28,17 @@ type RowLadderProps = {
  * Spectrum's Chroma and Hue. Adding and removing renumber the Sockets, because
  * a Socket's number is a property of its position.
  */
+/**
+ * Whether an event inside a Row is the user choosing that Row. Everything in a
+ * Row is, except the remove control: it takes focus when clicked, and the Row it
+ * would choose is the one it is about to remove. Focus is caught on the way down
+ * rather than up, so `stopPropagation` on the click cannot answer this — the
+ * selection would already have moved before the click was dispatched.
+ */
+function choosesRow(target: EventTarget | null): boolean {
+  return !(target instanceof Element) || !target.closest("[data-removes-row]");
+}
+
 /** Shared by the header and every Row, so the columns line up. */
 const COLUMNS =
   "grid grid-cols-[3rem_repeat(3,minmax(0,1fr))_2rem] gap-2 px-2";
@@ -63,12 +75,17 @@ export function RowLadder({
                click covers the whole Row, including the Socket number and the
                gaps, without pulling focus anywhere. The selection deliberately
                outlives the focus that set it, so the Row carries a mark of its
-               own instead of leaning on the focus ring. */
+               own instead of leaning on the focus ring. Both defer to
+               `choosesRow`, which excludes the remove control. */
             <li
               key={socket.number}
               aria-current={index === selected ? "true" : undefined}
-              onFocusCapture={() => onSelect(index)}
-              onClick={() => onSelect(index)}
+              onFocusCapture={(event) => {
+                if (choosesRow(event.target)) onSelect(index);
+              }}
+              onClick={(event) => {
+                if (choosesRow(event.target)) onSelect(index);
+              }}
               className={`${COLUMNS} items-center rounded-md py-1 ${
                 index === selected
                   ? "bg-sky-50 ring-1 ring-sky-500 dark:bg-sky-950/40"
@@ -114,7 +131,13 @@ export function RowLadder({
                     ? `Remove row ${at}`
                     : `Remove row ${at} — unavailable, the last row cannot be removed`
                 }
-                onClick={() => onChange(removeRow(palette, index))}
+                data-removes-row=""
+                onClick={() => {
+                  if (removable) {
+                    onSelect(selectionAfterRemoving(selected, index));
+                  }
+                  onChange(removeRow(palette, index));
+                }}
                 className="rounded-md border border-zinc-300 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-transparent dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 <span aria-hidden>&times;</span>

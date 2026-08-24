@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readingAt, selectedIndex } from "./selection";
+import {
+  readingAt,
+  selectedIndex,
+  selectionAfterRemoving,
+} from "./selection";
 import type { Palette } from "./palette";
 
 const SPECTRUM = { id: "brand", name: "brand" };
@@ -20,6 +24,10 @@ describe("readingAt", () => {
       color: { lightness: 60, chroma: 0.2, hue: 137 },
     });
   });
+
+  it("reads the last Row when the selected one has been removed", () => {
+    expect(readingAt(PALETTE, SPECTRUM, 2).socket).toEqual({ number: 200 });
+  });
 });
 
 describe("selectedIndex", () => {
@@ -36,8 +44,17 @@ describe("selectedIndex", () => {
   });
 });
 
-describe("readingAt", () => {
-  it("reads the last Row when the selected one has been removed", () => {
-    expect(readingAt(PALETTE, SPECTRUM, 2).socket).toEqual({ number: 200 });
+describe("selectionAfterRemoving", () => {
+  it("follows the selected Row up the ladder when one above it goes", () => {
+    // The Row the user was working on is unchanged; only its Socket is.
+    expect(selectionAfterRemoving(2, 0)).toBe(1);
+  });
+
+  it("leaves the selection where it is when a Row below it goes", () => {
+    expect(selectionAfterRemoving(1, 2)).toBe(1);
+  });
+
+  it("stays put when the selected Row itself goes, taking the one that slides up", () => {
+    expect(selectionAfterRemoving(1, 1)).toBe(1);
   });
 });

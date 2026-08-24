@@ -7,7 +7,7 @@
 import type { OklchColor } from "./color";
 import { socketsOf, type Palette, type Socket, type Spectrum } from "./palette";
 
-/** The selected Row, by the position it occupies in the ladder. */
+/** The selected Row, by its index in the ladder. */
 export type Selection = number;
 
 /** A Palette always has at least one Row, so the first one can always be selected. */
@@ -21,14 +21,30 @@ export type Reading = {
 };
 
 /**
- * The position the selection actually names. Removing a Row can leave the
- * selection past the end of the ladder, and exactly one Row is selected at all
- * times, so it comes to rest on the last one.
+ * The index the selection actually names. Removing a Row can leave the selection
+ * past the end of the ladder, and exactly one Row is selected at all times, so
+ * it comes to rest on the last one.
  */
-export function selectedIndex(palette: Palette, selection: Selection): number {
+export function selectedIndex(palette: Palette, selection: Selection): Selection {
   return Math.min(selection, palette.rows.length - 1);
 }
 
+/**
+ * Where the selection goes when a Row is removed. It follows the Row the user
+ * was working on rather than the index that Row happened to sit at, so removing
+ * something above the selection does not quietly move it onto a different Row.
+ *
+ * Removing the selected Row itself leaves the index alone, which lands on the
+ * Row that slides up into the Socket it vacated.
+ */
+export function selectionAfterRemoving(
+  selection: Selection,
+  removed: number,
+): Selection {
+  return removed < selection ? selection - 1 : selection;
+}
+
+/** What the selected Row reads as: its Socket, and the color it authors. */
 export function readingAt(
   palette: Palette,
   spectrum: Spectrum,
