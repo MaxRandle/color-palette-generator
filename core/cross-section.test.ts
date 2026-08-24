@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CHROMA_MAX } from "./color";
-import {
-  plot,
-  srgbRegionOutline,
-  toPath,
-  visibleGamutOutline,
-} from "./cross-section";
+import { plot, toPath, visibleGamutOutline } from "./cross-section";
 
 const SIZE = 100;
 
@@ -71,27 +66,6 @@ describe("visibleGamutOutline", () => {
       );
       expect(widest).toBeLessThan(SIZE / 2 / 5);
     }
-  });
-});
-
-describe("srgbRegionOutline", () => {
-  it("sits inside the Visible gamut outline", () => {
-    const visible = visibleGamutOutline(50, SIZE);
-    const srgb = srgbRegionOutline(50, SIZE);
-    for (let hue = 0; hue < 360; hue += 1) {
-      expect(radiusAt(srgb, hue)).toBeLessThan(radiusAt(visible, hue));
-    }
-  });
-
-  it("reaches the sRGB blue primary", () => {
-    // `oklch(45.20% 0.3133 264.1)` is a corner of the sRGB region, and this
-    // slice runs exactly through it, so the outline turns sharply there and the
-    // degree either side of it already reads a little lower.
-    const outline = srgbRegionOutline(45.2, SIZE);
-    const nearBlue = Math.max(
-      ...[262, 263, 264, 265, 266].map((hue) => radiusAt(outline, hue)),
-    );
-    expect(nearBlue).toBeCloseTo((0.3133 / CHROMA_MAX) * 50, 0);
   });
 });
 

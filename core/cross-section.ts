@@ -4,7 +4,7 @@
  * Chroma.
  */
 
-import { CHROMA_MAX, maxSrgbChroma } from "./color";
+import { CHROMA_MAX } from "./color";
 import { maxChroma } from "./gamut/max-chroma";
 
 export type Point = { readonly x: number; readonly y: number };
@@ -28,30 +28,14 @@ export function plot(chroma: number, hue: number, size: number): Point {
   };
 }
 
-/** A Boundary sampled once per degree of Hue, as points in the chart. */
-function outline(
-  boundaryAt: (hue: number) => number,
-  size: number,
-): readonly Point[] {
-  return Array.from({ length: 360 }, (_, hue) =>
-    plot(boundaryAt(hue), hue, size),
-  );
-}
-
-/** The Visible gamut's Boundary at one Lightness. */
+/** The Visible gamut's Boundary at one Lightness, once per degree of Hue. */
 export function visibleGamutOutline(
   lightness: number,
   size: number,
 ): readonly Point[] {
-  return outline((hue) => maxChroma(lightness, hue), size);
-}
-
-/** Where the sRGB region ends at one Lightness. */
-export function srgbRegionOutline(
-  lightness: number,
-  size: number,
-): readonly Point[] {
-  return outline((hue) => maxSrgbChroma(lightness, hue), size);
+  return Array.from({ length: 360 }, (_, hue) =>
+    plot(maxChroma(lightness, hue), hue, size),
+  );
 }
 
 /** An outline as a closed SVG path. */
