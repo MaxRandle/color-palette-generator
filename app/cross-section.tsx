@@ -1,4 +1,3 @@
-import { CHROMA_MAX } from "@/core/color";
 import { toPath, visibleGamutOutline } from "@/core/cross-section";
 
 /** The chart's side, in SVG user units; it scales to whatever box it is given. */
@@ -29,14 +28,6 @@ export function CrossSection({ lightness }: { lightness: number }) {
         d={toPath(visibleGamutOutline(lightness, SIZE))}
         className="fill-zinc-300 dark:fill-zinc-700"
       />
-      <text
-        x={center}
-        y={SIZE - 6}
-        textAnchor="middle"
-        className="fill-zinc-500 text-[10px]"
-      >
-        {`chroma 0 to ${CHROMA_MAX}`}
-      </text>
     </svg>
   );
 }
