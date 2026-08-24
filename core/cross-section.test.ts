@@ -1,17 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { CHROMA_MAX, isInSrgb } from "./color";
+import { CHROMA_MAX, isInSrgb, maxSrgbChroma } from "./color";
 import {
+  chromaAndHueAt,
+  chromaAt,
   hueWheel,
   plot,
   polar,
   radiusOf,
-  srgbRegionOutline,
+  outlineOf,
+  srgbRegionBoundary,
   toPath,
-  visibleGamutOutline,
+  visibleGamutBoundary,
   wheelColor,
 } from "./cross-section";
 
 const SIZE = 100;
+
+/** The Visible gamut's Boundary at one Lightness, as points in the chart. */
+function outlineOfVisibleGamut(lightness: number, size: number) {
+  return outlineOf(visibleGamutBoundary(lightness), size);
+}
+
+/** The sRGB region's Boundary at one Lightness, as points in the chart. */
+function outlineOfSrgbRegion(lightness: number, size: number) {
+  return outlineOf(srgbRegionBoundary(lightness), size);
+}
 
 /** The radius, in chart units, of a point on an outline. */
 function radiusAt(outline: readonly { x: number; y: number }[], hue: number) {
@@ -40,9 +53,9 @@ describe("plot", () => {
   });
 });
 
-describe("visibleGamutOutline", () => {
+describe("visibleGamutBoundary", () => {
   it("traces one point per degree of Hue", () => {
-    expect(visibleGamutOutline(50, SIZE)).toHaveLength(360);
+    expect(outlineOfVisibleGamut(50, SIZE)).toHaveLength(360);
   });
 
   it("does not rescale with Lightness: the axis is the axis", () => {
@@ -51,8 +64,8 @@ describe("visibleGamutOutline", () => {
     // back up to it.
     const rim = SIZE / 2;
     const widest = Math.max(
-      ...visibleGamutOutline(55, SIZE).map((_, hue) =>
-        radiusAt(visibleGamutOutline(55, SIZE), hue),
+      ...outlineOfVisibleGamut(55, SIZE).map((_, hue) =>
+        radiusAt(outlineOfVisibleGamut(55, SIZE), hue),
       ),
     );
     expect(widest).toBeCloseTo((0.41 / CHROMA_MAX) * rim, 0);
@@ -62,20 +75,81 @@ describe("visibleGamutOutline", () => {
   it("changes shape with Lightness", () => {
     // Yellow runs out of room at low Lightness; blue at high. The two outlines
     // are not the same shape, let alone the same size.
-    const dark = visibleGamutOutline(30, SIZE);
-    const light = visibleGamutOutline(90, SIZE);
+    const dark = outlineOfVisibleGamut(30, SIZE);
+    const light = outlineOfVisibleGamut(90, SIZE);
     expect(radiusAt(dark, 90) / radiusAt(light, 90)).toBeLessThan(0.5);
     expect(radiusAt(dark, 264) / radiusAt(light, 264)).toBeGreaterThan(1.5);
   });
 
   it("collapses towards the center near black and near white", () => {
     for (const lightness of [0, 0.5, 99.5, 100]) {
-      const outline = visibleGamutOutline(lightness, SIZE);
+      const outline = outlineOfVisibleGamut(lightness, SIZE);
       const widest = Math.max(
         ...outline.map((_, hue) => radiusAt(outline, hue)),
       );
       expect(widest).toBeLessThan(SIZE / 2 / 5);
     }
+  });
+});
+
+describe("chromaAt", () => {
+  it("reads a Boundary's own samples at whole degrees", () => {
+    const boundary = srgbRegionBoundary(50);
+    for (const hue of [0, 137, 359]) {
+      expect(chromaAt(boundary, hue)).toBeCloseTo(maxSrgbChroma(50, hue), 10);
+    }
+  });
+
+  it("carries the turn round, so 359 to 360 lands back on the start", () => {
+    const boundary = srgbRegionBoundary(50);
+    expect(chromaAt(boundary, 359.5)).toBeCloseTo(
+      (maxSrgbChroma(50, 359) + maxSrgbChroma(50, 0)) / 2,
+      10,
+    );
+  });
+
+  it("stays within a couple of 8-bit steps of the Boundary between samples", () => {
+    // What one degree of sampling costs. The chord across a cusp falls inside
+    // the Boundary, so the Fallback read off it is a shade under-saturated,
+    // never outside the sRGB region: no pixel is ever left to be clipped.
+    const boundary = srgbRegionBoundary(62.8);
+    for (let hue = 0; hue < 360; hue += 0.25) {
+      const error = chromaAt(boundary, hue) - maxSrgbChroma(62.8, hue);
+      expect(error).toBeLessThan(0.0005);
+      expect(error).toBeGreaterThan(-0.003);
+    }
+  });
+
+  it("joins its samples the way the outline does", () => {
+    // Both layers read the one Boundary, so the field cannot end somewhere the
+    // contour is not drawn.
+    const boundary = visibleGamutBoundary(50);
+    expect(chromaAt(boundary, 42)).toBe(
+      radiusAt(outlineOf(boundary, SIZE), 42) / (SIZE / 2) * CHROMA_MAX,
+    );
+  });
+});
+
+describe("chromaAndHueAt", () => {
+  it("runs plot backwards, so both layers read one transform", () => {
+    for (const chroma of [0.05, 0.2, 0.49]) {
+      for (const hue of [0, 29.23, 90, 137, 264, 359]) {
+        const { x, y } = plot(chroma, hue, SIZE);
+        const back = chromaAndHueAt(x, y, SIZE);
+        expect(back.chroma).toBeCloseTo(chroma, 10);
+        expect(back.hue).toBeCloseTo(hue, 10);
+      }
+    }
+  });
+
+  it("reports no Chroma at the center, whatever Hue that counts as", () => {
+    expect(chromaAndHueAt(SIZE / 2, SIZE / 2, SIZE).chroma).toBe(0);
+  });
+
+  it("keeps Hue within one turn", () => {
+    // Straight up is Hue 0, not 360: the wrap lands on the start of the turn.
+    expect(chromaAndHueAt(SIZE / 2, 0, SIZE).hue).toBeCloseTo(0, 10);
+    expect(chromaAndHueAt(SIZE, SIZE / 2, SIZE).hue).toBeCloseTo(90, 10);
   });
 });
 
@@ -89,14 +163,14 @@ describe("toPath", () => {
   });
 });
 
-describe("srgbRegionOutline", () => {
+describe("srgbRegionBoundary", () => {
   it("traces one point per degree of Hue", () => {
-    expect(srgbRegionOutline(50, SIZE)).toHaveLength(360);
+    expect(outlineOfSrgbRegion(50, SIZE)).toHaveLength(360);
   });
 
   it("sits inside the Visible gamut at every Hue", () => {
-    const srgb = srgbRegionOutline(50, SIZE);
-    const visible = visibleGamutOutline(50, SIZE);
+    const srgb = outlineOfSrgbRegion(50, SIZE);
+    const visible = outlineOfVisibleGamut(50, SIZE);
     for (let hue = 0; hue < 360; hue++) {
       expect(radiusAt(srgb, hue)).toBeLessThan(radiusAt(visible, hue));
     }
@@ -105,7 +179,7 @@ describe("srgbRegionOutline", () => {
   it("reaches the sRGB primaries: pure red is on the contour at its own Lightness", () => {
     // oklch(62.8% 0.2577 29.23) is #ff0000, so the contour at that Lightness
     // and Hue is that Chroma — an independently known point on the boundary.
-    const contour = radiusAt(srgbRegionOutline(62.8, SIZE), 29);
+    const contour = radiusAt(outlineOfSrgbRegion(62.8, SIZE), 29);
     expect(contour).toBeCloseTo((0.2577 / CHROMA_MAX) * (SIZE / 2), 0);
   });
 });
@@ -127,7 +201,7 @@ describe("radiusOf", () => {
   it("puts a ring outside the sRGB contour when the color falls outside sRGB", () => {
     // Pure red is oklch(62.8% 0.2577 29.23), the most Chroma sRGB holds near
     // that Hue, so 0.35 there is outside the region and must read as outside.
-    const contour = radiusAt(srgbRegionOutline(62.8, SIZE), 29);
+    const contour = radiusAt(outlineOfSrgbRegion(62.8, SIZE), 29);
     expect(radiusOf(0.35, SIZE)).toBeGreaterThan(contour);
     expect(radiusOf(0.2, SIZE)).toBeLessThan(contour);
   });

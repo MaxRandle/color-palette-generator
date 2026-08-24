@@ -6,6 +6,7 @@
 
 import {
   CHROMA_MAX,
+  FULL_TURN,
   fallbackFor,
   maxSrgbChroma,
   type OklchColor,
@@ -14,7 +15,8 @@ import { maxChroma } from "./gamut/max-chroma";
 
 export type Point = { readonly x: number; readonly y: number };
 
-const DEGREES = Math.PI / 180;
+/** One degree in radians: the angular axis is authored in degrees. */
+export const DEGREES = Math.PI / 180;
 
 /**
  * One Chroma as a distance from the origin in a square chart of this side. The
@@ -51,30 +53,77 @@ export function plot(chroma: number, hue: number, size: number): Point {
   return polar(radiusOf(chroma, size), hue, size);
 }
 
-/** A Boundary sampled once per degree of Hue, as points in the chart. */
-function outline(
-  boundaryAt: (hue: number) => number,
+/**
+ * A point in a square chart of this side as the Chroma and Hue plotted there:
+ * `plot` run backwards. It is what lets a raster layer be painted in the same
+ * coordinates the vector layer is drawn in, from the one transform rather than
+ * from a second copy of it.
+ */
+export function chromaAndHueAt(
+  x: number,
+  y: number,
   size: number,
-): readonly Point[] {
-  return Array.from({ length: 360 }, (_, hue) =>
-    plot(boundaryAt(hue), hue, size),
-  );
+): { chroma: number; hue: number } {
+  const center = size / 2;
+  const across = x - center;
+  // Back up through polar's flipped y axis, so the angle is the one Hue means.
+  const up = center - y;
+  const chroma = (Math.hypot(across, up) / center) * CHROMA_MAX;
+  const angle = Math.atan2(up, across) / DEGREES;
+  const hue = (ZERO_HUE - angle + FULL_TURN) % FULL_TURN;
+  return { chroma, hue };
+}
+
+/**
+ * A Boundary sampled once per degree of Hue, with the turn's end repeated so a
+ * Hue between 359 and 360 reads round to the start.
+ *
+ * One degree is the resolution both layers of the chart work at, and the point
+ * of sampling it once is that they cannot disagree: the raster field ends on
+ * the same numbers the vector outline is drawn from. It is also what keeps the
+ * field affordable — the sRGB Boundary costs a binary search, and 360 of them
+ * beats one per pixel.
+ */
+export type Boundary = Float64Array;
+
+const SAMPLES = FULL_TURN;
+
+/** A Boundary sampled from a function of Hue. */
+function sample(at: (hue: number) => number): Boundary {
+  const boundary = new Float64Array(SAMPLES + 1);
+  for (let hue = 0; hue < SAMPLES; hue++) {
+    boundary[hue] = at(hue);
+  }
+  boundary[SAMPLES] = boundary[0];
+  return boundary;
 }
 
 /** The Visible gamut's Boundary at one Lightness. */
-export function visibleGamutOutline(
-  lightness: number,
-  size: number,
-): readonly Point[] {
-  return outline((hue) => maxChroma(lightness, hue), size);
+export function visibleGamutBoundary(lightness: number): Boundary {
+  return sample((hue) => maxChroma(lightness, hue));
 }
 
 /** Where the sRGB region ends at one Lightness. */
-export function srgbRegionOutline(
-  lightness: number,
-  size: number,
-): readonly Point[] {
-  return outline((hue) => maxSrgbChroma(lightness, hue), size);
+export function srgbRegionBoundary(lightness: number): Boundary {
+  return sample((hue) => maxSrgbChroma(lightness, hue));
+}
+
+/**
+ * A Boundary's Chroma at a Hue between its samples, read the way the outline
+ * joins them: straight from one sample to the next.
+ */
+export function chromaAt(boundary: Boundary, hue: number): number {
+  const lower = Math.floor(hue);
+  return (
+    boundary[lower] + (boundary[lower + 1] - boundary[lower]) * (hue - lower)
+  );
+}
+
+/** A Boundary as points in the chart, one per sample. */
+export function outlineOf(boundary: Boundary, size: number): readonly Point[] {
+  return Array.from({ length: SAMPLES }, (_, hue) =>
+    plot(boundary[hue], hue, size),
+  );
 }
 
 /**

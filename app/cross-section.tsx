@@ -1,16 +1,20 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import {
   hueWheel,
   plot,
   polar,
   radiusOf,
-  srgbRegionOutline,
+  outlineOf,
+  srgbRegionBoundary,
   toPath,
   svgCoordinate,
-  visibleGamutOutline,
   wheelColor,
 } from "@/core/cross-section";
 import type { OklchColor } from "@/core/color";
 import { CHROMA_MAX } from "@/core/color";
+import { sliceField } from "@/core/cross-section-field";
 import type { Reading } from "@/core/selection";
 
 /** The chart's side, in SVG user units; it scales to whatever box it is given. */
@@ -46,97 +50,130 @@ const TICK_TO = TICK_FROM + 5;
 const LABEL_AT = TICK_TO + 13;
 
 /**
+ * The plotted area as a fraction of the viewBox, so the raster layer lands on
+ * the same square the vector layer plots into. One number, derived from the
+ * geometry rather than restated as a second copy of it.
+ */
+const PLOT_INSET = `${(MARGIN / (SIZE + MARGIN * 2)) * 100}%`;
+
+/**
+ * The slice interior, painted per pixel. It sits beneath the SVG, so the
+ * indicators stay vector-crisp over a field that is only decoration, and it is
+ * repainted on Lightness alone: Chroma and Hue edits move the indicators
+ * without touching a pixel.
+ *
+ * The backing store is the chart's own SIZE rather than the device's pixels. A
+ * field of color has no fine detail to lose, and the layer that does — the
+ * outlines, the wheel, the indicators — is vector and above it.
+ */
+function SliceField({ lightness }: { lightness: number }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const context = canvas.current?.getContext("2d");
+    if (!context) return;
+    const pixels = sliceField(lightness, SIZE);
+    context.putImageData(new ImageData(pixels, SIZE, SIZE), 0, 0);
+  }, [lightness]);
+
+  return (
+    <canvas
+      ref={canvas}
+      width={SIZE}
+      height={SIZE}
+      aria-hidden
+      className="absolute rounded-full bg-zinc-50 dark:bg-zinc-900"
+      style={{ inset: PLOT_INSET }}
+    />
+  );
+}
+
+/**
  * A horizontal slice through the color space at the selected Row's Lightness:
- * the Visible gamut's Boundary filled, the sRGB region's contour inside it, and
- * the Row's own Chroma and Hue drawn over both — a ring at its Chroma and a line
- * out at its Hue, so a Row outside the sRGB region has its ring plainly outside
- * the contour. The radial axis is fixed from 0 to 0.5 Chroma at every Lightness,
- * so slices are comparable with each other.
+ * the slice interior painted as a field of color out to the Visible gamut's
+ * Boundary, the sRGB region's contour drawn inside it, and the Row's own Chroma
+ * and Hue over both — a ring at its Chroma and a line out at its Hue, so a Row
+ * outside the sRGB region has its ring plainly outside the contour. The radial
+ * axis is fixed from 0 to 0.5 Chroma at every Lightness, so slices are
+ * comparable with each other.
  */
 export function CrossSection({ reading }: { reading: Reading }) {
   const { lightness, chroma, hue } = reading.color;
   const hueLineEnd = plot(CHROMA_MAX, hue, SIZE);
 
   return (
-    <svg
-      viewBox={`${-MARGIN} ${-MARGIN} ${SIZE + MARGIN * 2} ${SIZE + MARGIN * 2}`}
-      className="aspect-square w-full max-w-sm"
-      role="img"
-      aria-label={`Cross-section of the color space at ${lightness}% lightness, showing the visible gamut, the sRGB region, and the selected row at ${chroma} chroma and ${hue} degrees of hue`}
-    >
-      <circle
-        cx={RIM}
-        cy={RIM}
-        r={RIM}
-        className="fill-zinc-50 dark:fill-zinc-900"
-      />
-      <g strokeWidth={WHEEL_WIDTH} fill="none">
-        {hueWheel(SIZE).map(({ hue: at, path }) => (
-          <path
-            key={at}
-            d={path}
-            stroke={cssColor(wheelColor(lightness, at))}
-          />
-        ))}
-      </g>
-      {MARKED_HUES.map((at) => {
-        const from = polar(TICK_FROM, at, SIZE);
-        const to = polar(TICK_TO, at, SIZE);
-        const label = polar(LABEL_AT, at, SIZE);
-        return (
-          <g
-            key={at}
-            aria-hidden
-            className="fill-zinc-500 stroke-zinc-300 dark:stroke-zinc-700"
-          >
-            <line
-              x1={svgCoordinate(from.x)}
-              y1={svgCoordinate(from.y)}
-              x2={svgCoordinate(to.x)}
-              y2={svgCoordinate(to.y)}
-              strokeWidth={1}
+    <div className="relative aspect-square w-full max-w-sm">
+      <SliceField lightness={lightness} />
+      <svg
+        viewBox={`${-MARGIN} ${-MARGIN} ${SIZE + MARGIN * 2} ${SIZE + MARGIN * 2}`}
+        className="relative h-full w-full"
+        role="img"
+        aria-label={`Cross-section of the color space at ${lightness}% lightness, showing the visible gamut as a field of color, the sRGB region, and the selected row at ${chroma} chroma and ${hue} degrees of hue`}
+      >
+        <g strokeWidth={WHEEL_WIDTH} fill="none">
+          {hueWheel(SIZE).map(({ hue: at, path }) => (
+            <path
+              key={at}
+              d={path}
+              stroke={cssColor(wheelColor(lightness, at))}
             />
-            <text
-              x={svgCoordinate(label.x)}
-              y={svgCoordinate(label.y)}
-              stroke="none"
-              textAnchor="middle"
-              dominantBaseline="central"
-              className="text-[11px]"
+          ))}
+        </g>
+        {MARKED_HUES.map((at) => {
+          const from = polar(TICK_FROM, at, SIZE);
+          const to = polar(TICK_TO, at, SIZE);
+          const label = polar(LABEL_AT, at, SIZE);
+          return (
+            <g
+              key={at}
+              aria-hidden
+              className="fill-zinc-500 stroke-zinc-300 dark:stroke-zinc-700"
             >
-              {at}°
-            </text>
-          </g>
-        );
-      })}
-      <path
-        d={toPath(visibleGamutOutline(lightness, SIZE))}
-        className="fill-zinc-300 dark:fill-zinc-700"
-      />
-      <path
-        d={toPath(srgbRegionOutline(lightness, SIZE))}
-        fill="none"
-        strokeWidth={1}
-        className="stroke-zinc-600 dark:stroke-zinc-300"
-      />
-      {/* Out to the radial maximum rather than to the Row's own Chroma: the
-          line says which Hue is being edited, the ring says how much Chroma. */}
-      <line
-        x1={RIM}
-        y1={RIM}
-        x2={svgCoordinate(hueLineEnd.x)}
-        y2={svgCoordinate(hueLineEnd.y)}
-        strokeWidth={1}
-        className="stroke-sky-600 dark:stroke-sky-400"
-      />
-      <circle
-        cx={RIM}
-        cy={RIM}
-        r={svgCoordinate(radiusOf(chroma, SIZE))}
-        fill="none"
-        strokeWidth={1}
-        className="stroke-sky-600 dark:stroke-sky-400"
-      />
-    </svg>
+              <line
+                x1={svgCoordinate(from.x)}
+                y1={svgCoordinate(from.y)}
+                x2={svgCoordinate(to.x)}
+                y2={svgCoordinate(to.y)}
+                strokeWidth={1}
+              />
+              <text
+                x={svgCoordinate(label.x)}
+                y={svgCoordinate(label.y)}
+                stroke="none"
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="text-[11px]"
+              >
+                {at}°
+              </text>
+            </g>
+          );
+        })}
+        <path
+          d={toPath(outlineOf(srgbRegionBoundary(lightness), SIZE))}
+          fill="none"
+          strokeWidth={1}
+          className="stroke-zinc-600 dark:stroke-zinc-300"
+        />
+        {/* Out to the radial maximum rather than to the Row's own Chroma: the
+            line says which Hue is being edited, the ring says how much Chroma. */}
+        <line
+          x1={RIM}
+          y1={RIM}
+          x2={svgCoordinate(hueLineEnd.x)}
+          y2={svgCoordinate(hueLineEnd.y)}
+          strokeWidth={1}
+          className="stroke-sky-600 dark:stroke-sky-400"
+        />
+        <circle
+          cx={RIM}
+          cy={RIM}
+          r={svgCoordinate(radiusOf(chroma, SIZE))}
+          fill="none"
+          strokeWidth={1}
+          className="stroke-sky-600 dark:stroke-sky-400"
+        />
+      </svg>
+    </div>
   );
 }
