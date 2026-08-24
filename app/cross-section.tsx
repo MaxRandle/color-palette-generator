@@ -51,10 +51,16 @@ const LABEL_AT = TICK_TO + 13;
 
 /**
  * The plotted area as a fraction of the viewBox, so the raster layer lands on
- * the same square the vector layer plots into. One number, derived from the
- * geometry rather than restated as a second copy of it.
+ * the same square the vector layer plots into, derived from the geometry
+ * rather than restated as a second copy of it.
+ *
+ * Both the offset and the side, because a canvas is a replaced element: given
+ * only insets it keeps its intrinsic size and quietly ignores the right and
+ * bottom ones, which left the field a few pixels off-centre inside its own
+ * wheel.
  */
-const PLOT_INSET = `${(MARGIN / (SIZE + MARGIN * 2)) * 100}%`;
+const PLOT_OFFSET = `${(MARGIN / (SIZE + MARGIN * 2)) * 100}%`;
+const PLOT_SIDE = `${(SIZE / (SIZE + MARGIN * 2)) * 100}%`;
 
 /**
  * The slice interior, painted per pixel. It sits beneath the SVG, so the
@@ -83,7 +89,12 @@ function SliceField({ lightness }: { lightness: number }) {
       height={SIZE}
       aria-hidden
       className="absolute rounded-full bg-zinc-50 dark:bg-zinc-900"
-      style={{ inset: PLOT_INSET }}
+      style={{
+        left: PLOT_OFFSET,
+        top: PLOT_OFFSET,
+        width: PLOT_SIDE,
+        height: PLOT_SIDE,
+      }}
     />
   );
 }
