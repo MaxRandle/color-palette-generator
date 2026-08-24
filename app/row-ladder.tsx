@@ -117,7 +117,9 @@ export function RowLadder({
   /** The Socket the pointer is over, by index, from the Row boxes it crosses. */
   function socketUnder(clientY: number): number {
     const rows = Array.from(list.current?.children ?? []);
-    const under = rows.findIndex((row) => clientY < row.getBoundingClientRect().bottom);
+    const under = rows.findIndex(
+      (row) => clientY < row.getBoundingClientRect().bottom,
+    );
     return under === -1 ? rows.length - 1 : under;
   }
 
@@ -129,7 +131,7 @@ export function RowLadder({
         className={`${COLUMNS} text-xs font-medium tracking-wide text-zinc-500 uppercase`}
       >
         <span />
-        <span>Socket</span>
+        <span />
         <span>Lightness</span>
         <span>Chroma</span>
         <span>Hue</span>
@@ -137,7 +139,8 @@ export function RowLadder({
 
       <p id={HANDLE_HINT} className="sr-only">
         Press arrow up or arrow down to move this row to another socket. The row
-        carries its lightness with it and takes the destination socket&rsquo;s number.
+        carries its lightness with it and takes the destination socket&rsquo;s
+        number.
       </p>
 
       <ol ref={list} className="flex flex-col gap-2">
@@ -205,7 +208,11 @@ export function RowLadder({
                 onKeyDown={(event) => {
                   if (!reorderable) return;
                   const step =
-                    event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
+                    event.key === "ArrowUp"
+                      ? -1
+                      : event.key === "ArrowDown"
+                        ? 1
+                        : 0;
                   if (step === 0) return;
                   event.preventDefault();
                   // Rows are keyed by position, so the move control in the
@@ -243,7 +250,9 @@ export function RowLadder({
                 label={`Hue ${at}`}
                 value={stop.hue}
                 suffix="°"
-                onCommit={(hue) => onChange(setHue(palette, index, spectrum.id, hue))}
+                onCommit={(hue) =>
+                  onChange(setHue(palette, index, spectrum.id, hue))
+                }
               />
               {/* aria-disabled rather than disabled: the button stays focusable,
                   so the reason the last Row cannot go is reachable by keyboard. */}
