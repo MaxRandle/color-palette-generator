@@ -152,7 +152,7 @@ export function CrossSection({ reading }: { reading: Reading }) {
   );
 
   return (
-    <div className="relative aspect-square w-full max-w-sm">
+    <div className="relative aspect-square w-full max-w-xl">
       <SliceField lightness={lightness} />
       <svg
         viewBox={`${-MARGIN} ${-MARGIN} ${SIZE + MARGIN * 2} ${SIZE + MARGIN * 2}`}

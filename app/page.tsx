@@ -3,7 +3,7 @@ import { STARTER_PALETTE } from "@/core/starter-palette";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-[90rem] flex-col gap-8 px-6 py-10">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">
           Oklch CSS palette generator
