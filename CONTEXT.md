@@ -81,3 +81,10 @@ _Avoid_: Shade, step, rung, level, tone (a "shade number" is the Socket's number
 One named ramp of colors across every Socket. Contributes only Chroma and Hue — never
 Lightness. v1 has exactly one.
 _Avoid_: Ramp, scale, palette (a Palette contains Spectrums)
+
+**Palette code**:
+The whole Palette written as one versioned string, carried in the URL fragment and in
+localStorage. It stores authored Oklch values, never their Fallbacks, so a shared Palette
+is not permanently flattened to sRGB. The fragment rather than a query string, so the
+Palette never reaches a server.
+_Avoid_: Serialized palette, palette hash (the fragment is not a hash of anything)

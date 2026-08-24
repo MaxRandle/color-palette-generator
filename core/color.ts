@@ -21,6 +21,9 @@ export const LIGHTNESS_MAX = 100;
  */
 export const CHROMA_MAX = 0.5;
 
+/** Hue is an angle, so a full turn is the same direction as none. */
+export const FULL_TURN = 360;
+
 export type ResolvedColor = {
   /** What the user authored. Never overwritten by its Fallback. */
   readonly authored: OklchColor;

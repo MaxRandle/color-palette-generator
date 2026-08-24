@@ -9,15 +9,18 @@ import { RowLadder } from "./row-ladder";
 import { cellsOf } from "@/core/cells";
 import { formatCss } from "@/core/css";
 import { INITIAL_SELECTION, readingAt, selectedIndex } from "@/core/selection";
+import { usePersistedPalette } from "./use-persisted-palette";
 import type { Palette } from "@/core/palette";
 
 /**
- * Holds the Palette being authored, and which Row the user is working on.
+ * Holds the Palette being authored, and which Row the user is working on. The
+ * Palette outlives the page: `initialPalette` is only what is shown until the
+ * address bar or the last visit is read back.
  * Everything below is derived from the pair on each render, so the tiles, the
  * CSS and the Cross-section follow every keystroke without a sync step.
  */
 export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
-  const [palette, setPalette] = useState(initialPalette);
+  const [palette, setPalette] = usePersistedPalette(initialPalette);
   const [selection, setSelection] = useState(INITIAL_SELECTION);
   const css = formatCss(palette);
   // v1 has one Spectrum, so the Row being followed is read from that one.

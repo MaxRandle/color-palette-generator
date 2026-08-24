@@ -4,7 +4,7 @@
  * undo stack both get a plain value to hold.
  */
 
-import { CHROMA_MAX, LIGHTNESS_MAX } from "./color";
+import { CHROMA_MAX, FULL_TURN, LIGHTNESS_MAX } from "./color";
 import { prefixError } from "./prefix";
 import type { Palette, Row, Stop } from "./palette";
 
@@ -38,8 +38,6 @@ export function removeRow(palette: Palette, index: number): Palette {
   if (!canRemoveRow(palette)) return palette;
   return { ...palette, rows: palette.rows.filter((_, at) => at !== index) };
 }
-
-const FULL_TURN = 360;
 
 /** The value held inside its range. Not the Fallback's chroma reduction. */
 function within(value: number, max: number): number {
