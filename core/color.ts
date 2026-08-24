@@ -93,7 +93,7 @@ export function maxSrgbChroma(lightness: number, hue: number): number {
 }
 
 /** The Fallback: the same Lightness and Hue, pulled in to the sRGB region. */
-function fallbackFor(color: OklchColor): OklchColor {
+export function fallbackFor(color: OklchColor): OklchColor {
   return {
     ...color,
     chroma: Math.min(color.chroma, maxSrgbChroma(color.lightness, color.hue)),

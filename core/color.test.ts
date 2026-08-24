@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { clampRgb, converter, oklch } from "culori";
-import { isInSrgb, maxSrgbChroma, resolve } from "./color";
+import {
+  CHROMA_MAX,
+  fallbackFor,
+  isInSrgb,
+  maxSrgbChroma,
+  resolve,
+} from "./color";
 import { maxChroma } from "./gamut/max-chroma";
 import type { Row, Spectrum } from "./palette";
 
@@ -132,5 +138,40 @@ describe("maxSrgbChroma", () => {
     for (let hue = 0; hue < 360; hue += 1) {
       expect(maxSrgbChroma(50, hue)).toBeLessThan(maxChroma(50, hue));
     }
+  });
+});
+
+describe("fallbackFor", () => {
+  it("leaves a color the sRGB region already holds alone", () => {
+    const inside = { lightness: 60, chroma: 0.1, hue: 264 };
+    expect(fallbackFor(inside)).toEqual(inside);
+  });
+
+  // White and black are the only colors at the ends of the Lightness axis, so
+  // any Chroma asked for there falls back to no color at all. What survives the
+  // Fallback is not always a Chroma of zero — near black, Oklab's cube brings a
+  // sizable Chroma inside the half a hex step `isInSrgb` tolerates — so this
+  // asks what the color renders as, which is the part anyone can see.
+  it.each([
+    ["white", row(100, CHROMA_MAX, 90), 255],
+    ["black", row(0, CHROMA_MAX, 270), 0],
+  ])("falls back to %s at the end of the axis", (_name, input, level) => {
+    const hex = resolve(input, brand).hex;
+    const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+    // Within a few steps of #ffffff and #000000 rather than exactly them:
+    // `isInSrgb` tolerates half a hex step, and near black Oklab's cube hides a
+    // sizable Chroma inside that tolerance. Below what an eye can register.
+    for (const channel of channels) {
+      expect(Math.abs(channel - level)).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it("keeps the Lightness and Hue it was given", () => {
+    const { lightness, hue } = fallbackFor({
+      lightness: 25,
+      chroma: 0.5,
+      hue: 137,
+    });
+    expect({ lightness, hue }).toEqual({ lightness: 25, hue: 137 });
   });
 });
