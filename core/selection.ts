@@ -4,6 +4,7 @@
  * rather than something read back off the document.
  */
 
+import type { OklchColor } from "./color";
 import { socketsOf, type Palette, type Socket, type Spectrum } from "./palette";
 
 /** The selected Row, by the position it occupies in the ladder. */
@@ -15,9 +16,8 @@ export const INITIAL_SELECTION: Selection = 0;
 /** The selected Row's numbers: what the Cross-section slices at and reads out. */
 export type Reading = {
   readonly socket: Socket;
-  readonly lightness: number;
-  readonly chroma: number;
-  readonly hue: number;
+  /** As authored. The Cross-section plots the authored Chroma, not a Fallback. */
+  readonly color: OklchColor;
 };
 
 /**
@@ -38,8 +38,6 @@ export function readingAt(
   const stop = row.stops[spectrum.id];
   return {
     socket,
-    lightness: row.lightness,
-    chroma: stop.chroma,
-    hue: stop.hue,
+    color: { lightness: row.lightness, chroma: stop.chroma, hue: stop.hue },
   };
 }

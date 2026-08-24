@@ -21,7 +21,7 @@ const SIZE = 320;
  */
 export function CrossSection({ reading }: { reading: Reading }) {
   const center = SIZE / 2;
-  const { lightness, chroma, hue } = reading;
+  const { lightness, chroma, hue } = reading.color;
   const hueLineEnd = plot(CHROMA_MAX, hue, SIZE);
 
   return (

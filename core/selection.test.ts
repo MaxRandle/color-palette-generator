@@ -17,9 +17,7 @@ describe("readingAt", () => {
   it("reads the selected Row's Socket number, Lightness, Chroma and Hue", () => {
     expect(readingAt(PALETTE, SPECTRUM, 1)).toEqual({
       socket: { number: 200 },
-      lightness: 60,
-      chroma: 0.2,
-      hue: 137,
+      color: { lightness: 60, chroma: 0.2, hue: 137 },
     });
   });
 });

@@ -48,8 +48,8 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
         {/* The readout names the Row the chart is following, so the ring and
             the line can be read back as numbers rather than eyeballed. */}
         <p className="font-mono text-sm text-zinc-600 tabular-nums dark:text-zinc-400">
-          Socket {reading.socket.number} — {reading.lightness}% lightness,{" "}
-          {reading.chroma} chroma, {reading.hue}° hue
+          Socket {reading.socket.number} — {reading.color.lightness}% lightness,{" "}
+          {reading.color.chroma} chroma, {reading.color.hue}° hue
         </p>
         <CrossSection reading={reading} />
       </section>
