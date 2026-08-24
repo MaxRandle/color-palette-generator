@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { encodePalette } from "@/core/palette-code";
-import { restoredPalette } from "@/core/restore";
+import { pastedPalette, restoredPalette } from "@/core/restore";
 import type { Palette } from "@/core/palette";
 
 /** Where the last edit is kept between visits. */
@@ -59,21 +59,49 @@ function createStore(starter: Palette) {
   let settling: number | undefined;
   const listeners = new Set<() => void>();
 
+  function announce(): void {
+    for (const listener of listeners) listener();
+  }
+
+  /**
+   * The address bar changed without a reload: a pasted link, or a step back
+   * through history. `replaceState` does not fire this, so every one of these
+   * came from outside and the page should follow it.
+   */
+  function follow(): void {
+    const pasted = pastedPalette(fragmentCode(), read());
+    if (pasted === current) return;
+    // The edit the pending write was going to publish has just been navigated
+    // away from, so writing it now would undo the link the user just opened.
+    window.clearTimeout(settling);
+    current = pasted;
+    announce();
+  }
+
+  /** What the browser holds, read once and then kept in step by `set`. */
+  function read(): Palette {
+    current ??= restoredPalette(fragmentCode(), lastVisitCode(), starter);
+    return current;
+  }
+
   return {
     subscribe(listener: () => void) {
+      // The window listener belongs to the store, not to any one subscriber,
+      // so it goes up with the first and comes down with the last.
+      if (listeners.size === 0) window.addEventListener("hashchange", follow);
       listeners.add(listener);
-      return () => listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0)
+          window.removeEventListener("hashchange", follow);
+      };
     },
 
-    /** What the browser holds, read once and then kept in step by `set`. */
-    read(): Palette {
-      current ??= restoredPalette(fragmentCode(), lastVisitCode(), starter);
-      return current;
-    },
+    read,
 
     set(palette: Palette): void {
       current = palette;
-      for (const listener of listeners) listener();
+      announce();
       window.clearTimeout(settling);
       settling = window.setTimeout(
         () => writeCode(encodePalette(palette)),

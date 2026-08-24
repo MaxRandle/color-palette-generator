@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodePalette } from "./palette-code";
-import { restoredPalette } from "./restore";
+import { pastedPalette, restoredPalette } from "./restore";
 import type { Palette } from "./palette";
 
 const starter: Palette = {
@@ -51,5 +51,16 @@ describe("restoredPalette", () => {
 
   it("falls past an unreadable last visit to the starter Palette", () => {
     expect(restoredPalette(null, "nonsense", starter)).toBe(starter);
+  });
+});
+
+describe("pastedPalette", () => {
+  it("opens the Palette a newly pasted fragment carries", () => {
+    expect(pastedPalette(encodePalette(shared), stored)).toEqual(shared);
+  });
+
+  it("keeps the work in hand when the fragment says nothing readable", () => {
+    expect(pastedPalette("2~from~the:future~50,0.1,10", stored)).toBe(stored);
+    expect(pastedPalette(null, stored)).toBe(stored);
   });
 });
