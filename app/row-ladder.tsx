@@ -58,14 +58,17 @@ export function RowLadder({
           const stop = row.stops[spectrum.id];
           const at = `at socket ${socket.number}`;
           return (
-            /* Focus capture rather than a click handler: it is what makes
-               tabbing between fields move the selection, and the selection
-               deliberately outlives the focus that set it, so the Row carries
-               a mark of its own instead of leaning on the focus ring. */
+            /* Two ways in, because selection is not focus: focus capture is
+               what makes tabbing between fields move the selection, and the
+               click covers the whole Row, including the Socket number and the
+               gaps, without pulling focus anywhere. The selection deliberately
+               outlives the focus that set it, so the Row carries a mark of its
+               own instead of leaning on the focus ring. */
             <li
               key={socket.number}
               aria-current={index === selected ? "true" : undefined}
               onFocusCapture={() => onSelect(index)}
+              onClick={() => onSelect(index)}
               className={`${COLUMNS} items-center rounded-md py-1 ${
                 index === selected
                   ? "bg-sky-50 ring-1 ring-sky-500 dark:bg-sky-950/40"
