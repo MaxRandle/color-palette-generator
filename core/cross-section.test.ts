@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CHROMA_MAX } from "./color";
 import {
+  hueWheel,
   plot,
+  polar,
   radiusOf,
   srgbRegionOutline,
   toPath,
@@ -127,5 +129,42 @@ describe("radiusOf", () => {
     const contour = radiusAt(srgbRegionOutline(62.8, SIZE), 29);
     expect(radiusOf(0.35, SIZE)).toBeGreaterThan(contour);
     expect(radiusOf(0.2, SIZE)).toBeLessThan(contour);
+  });
+});
+
+describe("hueWheel", () => {
+  it("covers the rim once per degree of Hue", () => {
+    const wheel = hueWheel(SIZE);
+    expect(wheel).toHaveLength(360);
+    expect(wheel.map(({ hue }) => hue)).toEqual(
+      Array.from({ length: 360 }, (_, hue) => hue),
+    );
+  });
+
+  it("starts each arc at its own Hue on the rim", () => {
+    const wheel = hueWheel(SIZE);
+    // Hue 0 is straight up and 90 is to the right, on a rim of radius 50.
+    expect(wheel[0].path).toMatch(/^M50\.000 0\.000 A50/);
+    expect(wheel[90].path).toMatch(/^M100\.000 50\.000 A50/);
+  });
+
+  it("sweeps the way Hue runs, so the arcs go clockwise round the rim", () => {
+    // The sweep flag is the last of the arc's flags: 1 is clockwise on screen.
+    expect(hueWheel(SIZE)[0].path).toContain("A50.000 50.000 0 0 1");
+  });
+});
+
+describe("polar", () => {
+  it("measures the same angles as plot, from the same origin", () => {
+    expect(polar(0, 137, SIZE)).toEqual({ x: 50, y: 50 });
+    expect(polar(50, 0, SIZE)).toEqual({ x: 50, y: 0 });
+  });
+
+  it("places furniture outside the chart, where a Chroma cannot reach", () => {
+    // The rim is at radius 50, so 65 is outside it: room for a marker that
+    // sits beyond the plotted area rather than over it.
+    const { x, y } = polar(65, 90, SIZE);
+    expect(x).toBeCloseTo(115, 10);
+    expect(y).toBeCloseTo(50, 10);
   });
 });
