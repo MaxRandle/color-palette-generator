@@ -1,11 +1,10 @@
 "use client";
 
 import { NumberField } from "./number-field";
+import { CHROMA_MAX, LIGHTNESS_MAX } from "@/core/color";
 import {
   addRow,
   canRemoveRow,
-  CHROMA_MAX,
-  LIGHTNESS_MAX,
   removeRow,
   setChroma,
   setHue,

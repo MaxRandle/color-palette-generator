@@ -11,6 +11,16 @@ export type OklchColor = {
   readonly hue: number;
 };
 
+/** Lightness is a percentage; anything outside the range is not a color. */
+export const LIGHTNESS_MAX = 100;
+
+/**
+ * The authoring ceiling for Chroma, matching the Cross-section's radial axis.
+ * Well outside the sRGB region on every Hue: colors past it are permitted and
+ * fall back on export, so the ceiling is a bound on the control, not on the art.
+ */
+export const CHROMA_MAX = 0.5;
+
 export type ResolvedColor = {
   /** What the user authored. Never overwritten by its Fallback. */
   readonly authored: OklchColor;
@@ -58,28 +68,36 @@ function toHex(color: OklchColor): string {
 }
 
 /**
- * How precisely the Fallback search brackets the sRGB boundary, in Chroma.
+ * How precisely the search brackets the sRGB region's Boundary, in Chroma.
  * Well below the ~0.002 that moves a hex channel by one step.
  */
-const FALLBACK_PRECISION = 0.00005;
+const SRGB_BOUNDARY_PRECISION = 0.00005;
 
 /**
- * The Fallback: the same Lightness and Hue at the greatest Chroma that still
- * maps to a hex value. Binary search, never RGB clipping — clipping moves the
- * channels independently and shifts the Hue.
+ * The sRGB region's Boundary: the greatest Chroma that still maps to a hex
+ * value at this Lightness and Hue. Binary search, never RGB clipping —
+ * clipping moves the channels independently and shifts the Hue.
  */
-function fallbackFor(color: OklchColor): OklchColor {
+export function maxSrgbChroma(lightness: number, hue: number): number {
   let inside = 0;
-  let outside = color.chroma;
-  while (outside - inside > FALLBACK_PRECISION) {
+  let outside = CHROMA_MAX;
+  while (outside - inside > SRGB_BOUNDARY_PRECISION) {
     const midpoint = (inside + outside) / 2;
-    if (isInSrgb({ ...color, chroma: midpoint })) {
+    if (isInSrgb({ lightness, chroma: midpoint, hue })) {
       inside = midpoint;
     } else {
       outside = midpoint;
     }
   }
-  return { ...color, chroma: inside };
+  return inside;
+}
+
+/** The Fallback: the same Lightness and Hue, pulled in to the sRGB region. */
+function fallbackFor(color: OklchColor): OklchColor {
+  return {
+    ...color,
+    chroma: Math.min(color.chroma, maxSrgbChroma(color.lightness, color.hue)),
+  };
 }
 
 /** Resolve one Spectrum's Stop at one Row into a color ready to render and export. */

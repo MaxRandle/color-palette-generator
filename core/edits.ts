@@ -4,6 +4,7 @@
  * undo stack both get a plain value to hold.
  */
 
+import { CHROMA_MAX, LIGHTNESS_MAX } from "./color";
 import { prefixError } from "./prefix";
 import type { Palette, Row, Stop } from "./palette";
 
@@ -32,16 +33,6 @@ export function removeRow(palette: Palette, index: number): Palette {
   if (!canRemoveRow(palette)) return palette;
   return { ...palette, rows: palette.rows.filter((_, at) => at !== index) };
 }
-
-/** Lightness is a percentage; anything outside the range is not a color. */
-export const LIGHTNESS_MAX = 100;
-
-/**
- * The authoring ceiling for Chroma, matching the Cross-section's radial axis.
- * Well outside the sRGB region on every Hue: colors past it are permitted and
- * fall back on export, so the ceiling is a bound on the control, not on the art.
- */
-export const CHROMA_MAX = 0.5;
 
 const FULL_TURN = 360;
 

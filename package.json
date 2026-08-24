@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "generate:gamut": "node scripts/generate-gamut-table.mts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

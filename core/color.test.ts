@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clampRgb, converter, oklch } from "culori";
-import { isInSrgb, resolve } from "./color";
+import { isInSrgb, maxSrgbChroma, resolve } from "./color";
+import { maxChroma } from "./gamut/max-chroma";
 import type { Row, Spectrum } from "./palette";
 
 const brand: Spectrum = { id: "brand", name: "brand" };
@@ -104,5 +105,32 @@ describe("matrix provenance", () => {
       expect(channel).toBeCloseTo(ottosson[i], 7);
       expect(channel).not.toBe(ottosson[i]);
     });
+  });
+});
+
+describe("maxSrgbChroma", () => {
+  /**
+   * CSS Color 4 §7 states that sRGB blue is `oklch(0.452 0.313 264.1)`, so the
+   * sRGB region's boundary at that Lightness and Hue is that Chroma: the
+   * contour drawn inside the Cross-section has to pass through it.
+   */
+  it("puts the sRGB primaries on the boundary", () => {
+    expect(maxSrgbChroma(45.2, 264.1)).toBeCloseTo(0.3133, 3);
+    expect(maxSrgbChroma(62.8, 29.2)).toBeCloseTo(0.2576, 3);
+    expect(maxSrgbChroma(86.64, 142.5)).toBeCloseTo(0.2948, 3);
+  });
+
+  it("is the greatest Chroma that still maps to a hex value", () => {
+    const lightness = 60;
+    const hue = 250;
+    const chroma = maxSrgbChroma(lightness, hue);
+    expect(isInSrgb({ lightness, chroma, hue })).toBe(true);
+    expect(isInSrgb({ lightness, chroma: chroma + 0.002, hue })).toBe(false);
+  });
+
+  it("sits inside the Visible gamut at every Hue", () => {
+    for (let hue = 0; hue < 360; hue += 1) {
+      expect(maxSrgbChroma(50, hue)).toBeLessThan(maxChroma(50, hue));
+    }
   });
 });

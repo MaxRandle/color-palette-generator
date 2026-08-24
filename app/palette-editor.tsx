@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { ColorTiles } from "./color-tiles";
+import { CrossSection } from "./cross-section";
 import { CopyButton } from "./copy-button";
 import { PrefixField } from "./prefix-field";
 import { RowLadder } from "./row-ladder";
 import { cellsOf } from "@/core/cells";
 import { formatCss } from "@/core/css";
 import type { Palette } from "@/core/palette";
+
+/**
+ * The Lightness the Cross-section is drawn at. Fixed for now; the next ticket
+ * hands it to the selected Row.
+ */
+const CROSS_SECTION_LIGHTNESS = 50;
 
 /**
  * Holds the Palette being authored. Everything below is derived from it on each
@@ -30,6 +37,13 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
           spectrum={palette.spectrums[0]}
           onChange={setPalette}
         />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium tracking-wide text-zinc-500 uppercase">
+          Cross-section at {CROSS_SECTION_LIGHTNESS}% lightness
+        </h2>
+        <CrossSection lightness={CROSS_SECTION_LIGHTNESS} />
       </section>
 
       {palette.spectrums.map((spectrum) => (
