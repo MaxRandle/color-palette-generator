@@ -57,3 +57,19 @@ export function readingAt(
     color: { lightness: row.lightness, chroma: stop.chroma, hue: stop.hue },
   };
 }
+
+/**
+ * Where the selection goes when a Row is moved. As with removal it follows the
+ * Row the user was working on: the selected Row rides along to its destination,
+ * and a Row moved past it shifts it by the one Socket the move displaced it by.
+ */
+export function selectionAfterMoving(
+  selection: Selection,
+  from: number,
+  to: number,
+): Selection {
+  if (selection === from) return to;
+  if (from < selection && selection <= to) return selection - 1;
+  if (to <= selection && selection < from) return selection + 1;
+  return selection;
+}

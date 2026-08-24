@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addRow,
   canRemoveRow,
+  moveRow,
   removeRow,
   setChroma,
   setHue,
@@ -122,5 +123,50 @@ describe("setPrefix", () => {
   it("refuses a prefix that would not be a CSS identifier", () => {
     expect(setPrefix(palette, "my brand")).toBe(palette);
     expect(setPrefix(palette, "")).toBe(palette);
+  });
+});
+
+describe("moveRow", () => {
+  const three: Palette = {
+    ...palette,
+    rows: [
+      { lightness: 95, stops: { brand: { chroma: 0.02, hue: 264 } } },
+      { lightness: 60, stops: { brand: { chroma: 0.2, hue: 264 } } },
+      { lightness: 20, stops: { brand: { chroma: 0.11, hue: 264 } } },
+    ],
+  };
+
+  it("drops the Row into the destination Socket, closing the gap behind it", () => {
+    expect(moveRow(three, 0, 2).rows).toEqual([three.rows[1], three.rows[2], three.rows[0]]);
+  });
+
+  it("moves a Row up the ladder as well as down", () => {
+    expect(moveRow(three, 2, 0).rows).toEqual([three.rows[2], three.rows[0], three.rows[1]]);
+  });
+
+  it("carries the Row's Lightness with it into the new Socket", () => {
+    // ADR-0001: a Row is its Lightness plus every Spectrum's Stop, moving as one.
+    const moved = moveRow(three, 0, 2);
+    expect(moved.rows[2].lightness).toBe(95);
+    expect(moved.rows[2].stops.brand).toEqual({ chroma: 0.02, hue: 264 });
+  });
+
+  it("keeps Socket numbers contiguous and in order", () => {
+    expect(socketsOf(moveRow(three, 0, 2)).map((s) => s.socket.number)).toEqual([100, 200, 300]);
+  });
+
+  it("gives the moved Row the destination Socket's number", () => {
+    const [, , bottom] = socketsOf(moveRow(three, 0, 2));
+    expect(bottom.socket.number).toBe(300);
+    expect(bottom.row).toEqual(three.rows[0]);
+  });
+
+  it("holds a destination past either end of the ladder at the end Row", () => {
+    expect(moveRow(three, 1, 9).rows).toEqual([three.rows[0], three.rows[2], three.rows[1]]);
+    expect(moveRow(three, 1, -4).rows).toEqual([three.rows[1], three.rows[0], three.rows[2]]);
+  });
+
+  it("leaves the Palette alone when the Row is already in that Socket", () => {
+    expect(moveRow(three, 1, 1)).toBe(three);
   });
 });

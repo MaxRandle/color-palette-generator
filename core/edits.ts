@@ -46,6 +46,26 @@ function wrapHue(hue: number): number {
   return ((hue % FULL_TURN) + FULL_TURN) % FULL_TURN;
 }
 
+/**
+ * Moves a Row into another Socket, per ADR-0001: the whole Row travels — its
+ * Lightness together with every Spectrum's Stop — and takes the number of the
+ * Socket it lands in. The Rows it passes shuffle to close the gap behind it, so
+ * the ladder stays contiguous and a Socket keeps naming a position rather than
+ * an occupant.
+ *
+ * A destination past either end comes to rest on the end Row, so a drag that
+ * runs off the ladder still means what it looks like it means.
+ */
+export function moveRow(palette: Palette, from: number, to: number): Palette {
+  const last = palette.rows.length - 1;
+  const destination = within(to, last);
+  if (from < 0 || from > last || destination === from) return palette;
+  const rows = [...palette.rows];
+  const [moved] = rows.splice(from, 1);
+  rows.splice(destination, 0, moved);
+  return { ...palette, rows };
+}
+
 function replaceRow(palette: Palette, index: number, replace: (row: Row) => Row): Palette {
   return {
     ...palette,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   readingAt,
   selectedIndex,
+  selectionAfterMoving,
   selectionAfterRemoving,
 } from "./selection";
 import type { Palette } from "./palette";
@@ -56,5 +57,25 @@ describe("selectionAfterRemoving", () => {
 
   it("stays put when the selected Row itself goes, taking the one that slides up", () => {
     expect(selectionAfterRemoving(1, 1)).toBe(1);
+  });
+});
+
+describe("selectionAfterMoving", () => {
+  it("rides along with the selected Row into its new Socket", () => {
+    expect(selectionAfterMoving(0, 0, 2)).toBe(2);
+    expect(selectionAfterMoving(2, 2, 0)).toBe(0);
+  });
+
+  it("follows the selected Row up when a Row above it is moved below it", () => {
+    expect(selectionAfterMoving(2, 0, 3)).toBe(1);
+  });
+
+  it("follows the selected Row down when a Row below it is moved above it", () => {
+    expect(selectionAfterMoving(1, 3, 0)).toBe(2);
+  });
+
+  it("leaves the selection alone when the move happens clear of it", () => {
+    expect(selectionAfterMoving(0, 1, 2)).toBe(0);
+    expect(selectionAfterMoving(3, 0, 1)).toBe(3);
   });
 });
