@@ -83,10 +83,11 @@ Lightness. v1 has exactly one.
 _Avoid_: Ramp, scale, palette (a Palette contains Spectrums)
 
 **Lightness scale**:
-The single track carrying one marker per Row at its Lightness, from 0% at the black end
-to 100% at the white end. It belongs to the whole Palette, so its track is neutral rather
-than tinted with any Spectrum's colors, and it carries no labels: the numbers are in the
-ladder and the scale's job is spacing. A drag snaps to 0.5%; typing does not.
+The single upright track beside the ladder carrying one marker per Row at its Lightness,
+running 100% at the top down to 0% at the bottom, the way the ladder runs. It belongs to
+the whole Palette, so its track is neutral rather than tinted with any Spectrum's colors,
+and it carries no labels: the numbers are in the ladder and the scale's job is spacing.
+A drag snaps to 0.5%; typing does not.
 _Avoid_: Lightness slider, ramp bar (and note "scale" alone still never means a Spectrum)
 
 **Reversal**:
