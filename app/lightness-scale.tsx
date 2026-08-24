@@ -68,8 +68,8 @@ export function LightnessScale({
   }
 
   return (
-    /* The padding is half a marker: the end markers straddle 0% and 100%
-       rather than being pushed inside the track to stay in the box. */
+    /* The end markers straddle 0% and 100%, overhanging the track rather than
+       being pushed inside it: a marker's centre is where its Lightness is. */
     <div role="group" aria-label="Lightness scale">
       <div
         ref={track}
