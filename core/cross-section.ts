@@ -4,12 +4,22 @@
  * Chroma.
  */
 
-import { CHROMA_MAX } from "./color";
+import { CHROMA_MAX, maxSrgbChroma } from "./color";
 import { maxChroma } from "./gamut/max-chroma";
 
 export type Point = { readonly x: number; readonly y: number };
 
 const DEGREES = Math.PI / 180;
+
+/**
+ * One Chroma as a distance from the origin in a square chart of this side. The
+ * radial axis is the authoring ceiling at every Lightness, so a slice never
+ * rescales: the shape shrinking towards white is the shape shrinking, not the
+ * chart zooming.
+ */
+export function radiusOf(chroma: number, size: number): number {
+  return (chroma / CHROMA_MAX) * (size / 2);
+}
 
 /**
  * One Chroma and Hue as a point in a square chart of this side, with the
@@ -18,24 +28,37 @@ const DEGREES = Math.PI / 180;
  */
 export function plot(chroma: number, hue: number, size: number): Point {
   const center = size / 2;
-  // The radial axis is the authoring ceiling at every Lightness, so a slice
-  // never rescales: the shape shrinking towards white is the shape shrinking,
-  // not the chart zooming.
-  const radius = (chroma / CHROMA_MAX) * center;
+  const radius = radiusOf(chroma, size);
   return {
     x: center + radius * Math.cos(hue * DEGREES),
     y: center - radius * Math.sin(hue * DEGREES),
   };
 }
 
-/** The Visible gamut's Boundary at one Lightness, once per degree of Hue. */
+/** A Boundary sampled once per degree of Hue, as points in the chart. */
+function outline(
+  boundaryAt: (hue: number) => number,
+  size: number,
+): readonly Point[] {
+  return Array.from({ length: 360 }, (_, hue) =>
+    plot(boundaryAt(hue), hue, size),
+  );
+}
+
+/** The Visible gamut's Boundary at one Lightness. */
 export function visibleGamutOutline(
   lightness: number,
   size: number,
 ): readonly Point[] {
-  return Array.from({ length: 360 }, (_, hue) =>
-    plot(maxChroma(lightness, hue), hue, size),
-  );
+  return outline((hue) => maxChroma(lightness, hue), size);
+}
+
+/** Where the sRGB region ends at one Lightness. */
+export function srgbRegionOutline(
+  lightness: number,
+  size: number,
+): readonly Point[] {
+  return outline((hue) => maxSrgbChroma(lightness, hue), size);
 }
 
 /** An outline as a closed SVG path. */

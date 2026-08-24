@@ -17,6 +17,9 @@ type RowLadderProps = {
   /** The Spectrum whose Stop each Row edits. v1 has exactly one. */
   spectrum: Spectrum;
   onChange: (palette: Palette) => void;
+  /** The position of the Row the Cross-section is following. */
+  selected: number;
+  onSelect: (index: number) => void;
 };
 
 /**
@@ -25,9 +28,16 @@ type RowLadderProps = {
  * a Socket's number is a property of its position.
  */
 /** Shared by the header and every Row, so the columns line up. */
-const COLUMNS = "grid grid-cols-[3rem_repeat(3,minmax(0,1fr))_2rem] gap-2";
+const COLUMNS =
+  "grid grid-cols-[3rem_repeat(3,minmax(0,1fr))_2rem] gap-2 px-2";
 
-export function RowLadder({ palette, spectrum, onChange }: RowLadderProps) {
+export function RowLadder({
+  palette,
+  spectrum,
+  onChange,
+  selected,
+  onSelect,
+}: RowLadderProps) {
   const removable = canRemoveRow(palette);
 
   return (
@@ -48,9 +58,19 @@ export function RowLadder({ palette, spectrum, onChange }: RowLadderProps) {
           const stop = row.stops[spectrum.id];
           const at = `at socket ${socket.number}`;
           return (
+            /* Focus capture rather than a click handler: it is what makes
+               tabbing between fields move the selection, and the selection
+               deliberately outlives the focus that set it, so the Row carries
+               a mark of its own instead of leaning on the focus ring. */
             <li
               key={socket.number}
-              className={`${COLUMNS} items-center`}
+              aria-current={index === selected ? "true" : undefined}
+              onFocusCapture={() => onSelect(index)}
+              className={`${COLUMNS} items-center rounded-md py-1 ${
+                index === selected
+                  ? "bg-sky-50 ring-1 ring-sky-500 dark:bg-sky-950/40"
+                  : ""
+              }`}
             >
               <span className="font-mono text-sm text-zinc-500 tabular-nums">
                 {socket.number}

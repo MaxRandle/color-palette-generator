@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CHROMA_MAX } from "./color";
-import { plot, toPath, visibleGamutOutline } from "./cross-section";
+import {
+  plot,
+  radiusOf,
+  srgbRegionOutline,
+  toPath,
+  visibleGamutOutline,
+} from "./cross-section";
 
 const SIZE = 100;
 
@@ -76,5 +82,49 @@ describe("toPath", () => {
       { x: 3, y: 4 },
     ]);
     expect(path).toBe("M1.000 2.000 L3.000 4.000 Z");
+  });
+});
+
+describe("srgbRegionOutline", () => {
+  it("traces one point per degree of Hue", () => {
+    expect(srgbRegionOutline(50, SIZE)).toHaveLength(360);
+  });
+
+  it("sits inside the Visible gamut at every Hue", () => {
+    const srgb = srgbRegionOutline(50, SIZE);
+    const visible = visibleGamutOutline(50, SIZE);
+    for (let hue = 0; hue < 360; hue++) {
+      expect(radiusAt(srgb, hue)).toBeLessThan(radiusAt(visible, hue));
+    }
+  });
+
+  it("reaches the sRGB primaries: pure red is on the contour at its own Lightness", () => {
+    // oklch(62.8% 0.2577 29.23) is #ff0000, so the contour at that Lightness
+    // and Hue is that Chroma — an independently known point on the boundary.
+    const contour = radiusAt(srgbRegionOutline(62.8, SIZE), 29);
+    expect(contour).toBeCloseTo((0.2577 / CHROMA_MAX) * (SIZE / 2), 0);
+  });
+});
+
+describe("radiusOf", () => {
+  it("puts zero Chroma on the neutral axis and the ceiling on the rim", () => {
+    expect(radiusOf(0, SIZE)).toBe(0);
+    expect(radiusOf(CHROMA_MAX, SIZE)).toBe(SIZE / 2);
+  });
+
+  it("agrees with the radius plot uses, so a ring meets its own Hue line", () => {
+    const { x, y } = plot(0.3, 137, SIZE);
+    expect(Math.hypot(x - SIZE / 2, y - SIZE / 2)).toBeCloseTo(
+      radiusOf(0.3, SIZE),
+      10,
+    );
+  });
+
+  it("puts a ring outside the sRGB contour when the color falls outside sRGB", () => {
+    // Pure red is oklch(62.8% 0.2577 29.23), the most Chroma sRGB holds near
+    // that Hue, so 0.35 there is outside the region and must read as outside.
+    const contour = radiusAt(srgbRegionOutline(62.8, SIZE), 29);
+    expect(radiusOf(0.35, SIZE)).toBeGreaterThan(contour);
+    expect(radiusOf(0.2, SIZE)).toBeLessThan(contour);
   });
 });

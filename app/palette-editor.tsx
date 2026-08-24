@@ -8,21 +8,21 @@ import { PrefixField } from "./prefix-field";
 import { RowLadder } from "./row-ladder";
 import { cellsOf } from "@/core/cells";
 import { formatCss } from "@/core/css";
+import { INITIAL_SELECTION, readingAt, selectedIndex } from "@/core/selection";
 import type { Palette } from "@/core/palette";
 
 /**
- * The Lightness the Cross-section is drawn at. Fixed for now; the next ticket
- * hands it to the selected Row.
- */
-const CROSS_SECTION_LIGHTNESS = 50;
-
-/**
- * Holds the Palette being authored. Everything below is derived from it on each
- * render, so tiles and CSS follow every keystroke without a sync step.
+ * Holds the Palette being authored, and which Row the user is working on.
+ * Everything below is derived from the pair on each render, so the tiles, the
+ * CSS and the Cross-section follow every keystroke without a sync step.
  */
 export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
   const [palette, setPalette] = useState(initialPalette);
+  const [selection, setSelection] = useState(INITIAL_SELECTION);
   const css = formatCss(palette);
+  // v1 has one Spectrum, so the Row being followed is read from that one.
+  const spectrum = palette.spectrums[0];
+  const reading = readingAt(palette, spectrum, selection);
 
   return (
     <>
@@ -34,16 +34,24 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
         {/* v1 edits the one Spectrum; with several, selection picks the focused one. */}
         <RowLadder
           palette={palette}
-          spectrum={palette.spectrums[0]}
+          spectrum={spectrum}
           onChange={setPalette}
+          selected={selectedIndex(palette, selection)}
+          onSelect={setSelection}
         />
       </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium tracking-wide text-zinc-500 uppercase">
-          Cross-section at {CROSS_SECTION_LIGHTNESS}% lightness
+          Cross-section
         </h2>
-        <CrossSection lightness={CROSS_SECTION_LIGHTNESS} />
+        {/* The readout names the Row the chart is following, so the ring and
+            the line can be read back as numbers rather than eyeballed. */}
+        <p className="font-mono text-sm text-zinc-600 tabular-nums dark:text-zinc-400">
+          Socket {reading.socket.number} — {reading.lightness}% lightness,{" "}
+          {reading.chroma} chroma, {reading.hue}° hue
+        </p>
+        <CrossSection reading={reading} />
       </section>
 
       {palette.spectrums.map((spectrum) => (
