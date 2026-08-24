@@ -131,7 +131,7 @@ export function RowLadder({
         className={`${COLUMNS} text-xs font-medium tracking-wide text-zinc-500 uppercase`}
       >
         <span />
-        <span />
+        <span>Shade</span>
         <span>Lightness</span>
         <span>Chroma</span>
         <span>Hue</span>
