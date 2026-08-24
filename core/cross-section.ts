@@ -26,14 +26,13 @@ const ZERO_HUE = 90;
 
 /**
  * One Chroma and Hue as a point in a square chart of this side, with the
- * neutral axis at the center. Hue starts straight up and runs counter-clockwise,
- * so it reads the way the color wheel does rather than the way SVG's y axis
- * points.
+ * neutral axis at the center. Hue starts straight up and runs clockwise, so it
+ * reads the way a dial does rather than the way SVG's y axis points.
  */
 export function plot(chroma: number, hue: number, size: number): Point {
   const center = size / 2;
   const radius = radiusOf(chroma, size);
-  const angle = (hue + ZERO_HUE) * DEGREES;
+  const angle = (ZERO_HUE - hue) * DEGREES;
   return {
     x: center + radius * Math.cos(angle),
     y: center - radius * Math.sin(angle),
