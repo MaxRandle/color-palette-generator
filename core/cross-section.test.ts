@@ -22,17 +22,18 @@ describe("plot", () => {
     expect(plot(0, 137, SIZE)).toEqual({ x: 50, y: 50 });
   });
 
-  it("measures angle as Hue, counter-clockwise from the right", () => {
-    expect(plot(CHROMA_MAX, 0, SIZE).x).toBeCloseTo(100, 10);
-    expect(plot(CHROMA_MAX, 0, SIZE).y).toBeCloseTo(50, 10);
-    // SVG's y axis points down, so 90 degrees of Hue is up the screen.
-    expect(plot(CHROMA_MAX, 90, SIZE).y).toBeCloseTo(0, 10);
-    expect(plot(CHROMA_MAX, 180, SIZE).x).toBeCloseTo(0, 10);
+  it("measures angle as Hue, counter-clockwise from straight up", () => {
+    // SVG's y axis points down, so straight up is y = 0.
+    expect(plot(CHROMA_MAX, 0, SIZE).x).toBeCloseTo(50, 10);
+    expect(plot(CHROMA_MAX, 0, SIZE).y).toBeCloseTo(0, 10);
+    expect(plot(CHROMA_MAX, 90, SIZE).x).toBeCloseTo(0, 10);
+    expect(plot(CHROMA_MAX, 180, SIZE).y).toBeCloseTo(100, 10);
+    expect(plot(CHROMA_MAX, 270, SIZE).x).toBeCloseTo(100, 10);
   });
 
   it("measures radius as Chroma on an axis fixed from 0 to the authoring ceiling", () => {
     expect(CHROMA_MAX).toBe(0.5);
-    expect(plot(0.25, 0, SIZE).x).toBeCloseTo(75, 10);
+    expect(plot(0.25, 0, SIZE).y).toBeCloseTo(25, 10);
   });
 });
 

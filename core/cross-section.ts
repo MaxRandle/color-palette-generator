@@ -21,17 +21,22 @@ export function radiusOf(chroma: number, size: number): number {
   return (chroma / CHROMA_MAX) * (size / 2);
 }
 
+/** Where 0 degrees of Hue points: straight up, a quarter turn off the x axis. */
+const ZERO_HUE = 90;
+
 /**
  * One Chroma and Hue as a point in a square chart of this side, with the
- * neutral axis at the center. Hue runs counter-clockwise from the right, so it
- * reads the way the color wheel does rather than the way SVG's y axis points.
+ * neutral axis at the center. Hue starts straight up and runs counter-clockwise,
+ * so it reads the way the color wheel does rather than the way SVG's y axis
+ * points.
  */
 export function plot(chroma: number, hue: number, size: number): Point {
   const center = size / 2;
   const radius = radiusOf(chroma, size);
+  const angle = (hue + ZERO_HUE) * DEGREES;
   return {
-    x: center + radius * Math.cos(hue * DEGREES),
-    y: center - radius * Math.sin(hue * DEGREES),
+    x: center + radius * Math.cos(angle),
+    y: center - radius * Math.sin(angle),
   };
 }
 

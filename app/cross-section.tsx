@@ -12,6 +12,17 @@ import type { Reading } from "@/core/selection";
 const SIZE = 320;
 
 /**
+ * The Hues marked on the rim, a quarter turn apart. They say which way the
+ * angular axis runs, which the Hue line alone cannot: a line at 300 degrees is
+ * only readable against a marked 270.
+ */
+const MARKED_HUES = [0, 90, 180, 270];
+
+/** How far in from the rim a marker's tick reaches, and then its label sits. */
+const TICK_END = CHROMA_MAX * 0.94;
+const LABEL_AT = CHROMA_MAX * 0.82;
+
+/**
  * A horizontal slice through the color space at the selected Row's Lightness:
  * the Visible gamut's Boundary filled, the sRGB region's contour inside it, and
  * the Row's own Chroma and Hue drawn over both — a ring at its Chroma and a
@@ -47,6 +58,34 @@ export function CrossSection({ reading }: { reading: Reading }) {
         strokeWidth={1}
         className="stroke-zinc-600 dark:stroke-zinc-300"
       />
+      {/* Inside the rim rather than outside it: the circle already fills the
+          viewBox, and a slice never reaches the rim, so the room is there. */}
+      {MARKED_HUES.map((hue) => {
+        const tickStart = plot(CHROMA_MAX, hue, SIZE);
+        const tickEnd = plot(TICK_END, hue, SIZE);
+        const label = plot(LABEL_AT, hue, SIZE);
+        return (
+          <g key={hue} aria-hidden className="fill-zinc-500 stroke-zinc-400 dark:stroke-zinc-600">
+            <line
+              x1={tickStart.x}
+              y1={tickStart.y}
+              x2={tickEnd.x}
+              y2={tickEnd.y}
+              strokeWidth={1}
+            />
+            <text
+              x={label.x}
+              y={label.y}
+              stroke="none"
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="text-[10px]"
+            >
+              {hue}°
+            </text>
+          </g>
+        );
+      })}
       {/* Out to the radial maximum rather than to the Row's own Chroma: the
           line says which Hue is being edited, the ring says how much Chroma. */}
       <line
