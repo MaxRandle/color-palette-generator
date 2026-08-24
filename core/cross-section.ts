@@ -160,23 +160,25 @@ export function hueWheel(size: number): readonly HueArc[] {
 }
 
 /**
- * One Hue on the rim, with as much Chroma as the sRGB region holds at this
- * Lightness. It asks for the authoring ceiling and takes what it can get, so
- * each arc is the most vivid color there is where it sits.
+ * The Lightness the rim's Hues are painted at. Fixed, and nothing to do with the
+ * selected Row: the wheel is the angular axis, so it has to look the same
+ * whatever the slice inside it is doing. Following the slice was tried, and it
+ * cost the wheel its job — towards either end of the Lightness axis there is so
+ * little Chroma to be had that it stops indicating Hue at all.
+ */
+const WHEEL_LIGHTNESS = 65;
+
+/**
+ * One Hue on the rim, with as much Chroma as the sRGB region holds there. It
+ * asks for the authoring ceiling and takes what it can get, so each arc is the
+ * most vivid color there is at its Hue.
  *
  * Through the Fallback rather than straight into an `oklch()` a browser would
  * have to gamut map: handed a color outside its gamut, a browser clips the
- * channels one by one, which shifts the Hue. At 100% Lightness the rim came back
- * magenta and yellow where white is the only color there is, and at 0% it came
- * back red and green rather than black.
- *
- * The Lightness is the slice's own, which is on trial: it shows the rim in the
- * colors the slice can really reach, but towards either end of the Lightness
- * axis there is so little Chroma to be had that the wheel stops working as a Hue
- * indicator at all.
+ * channels one by one, which shifts the Hue.
  */
-export function wheelColor(lightness: number, hue: number): OklchColor {
-  return fallbackFor({ lightness, chroma: CHROMA_MAX, hue });
+export function wheelColor(hue: number): OklchColor {
+  return fallbackFor({ lightness: WHEEL_LIGHTNESS, chroma: CHROMA_MAX, hue });
 }
 
 /**

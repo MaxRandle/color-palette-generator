@@ -165,7 +165,7 @@ export function CrossSection({ reading }: { reading: Reading }) {
             <path
               key={at}
               d={path}
-              stroke={cssColor(wheelColor(lightness, at))}
+              stroke={cssColor(wheelColor(at))}
             />
           ))}
         </g>

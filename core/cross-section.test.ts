@@ -249,22 +249,21 @@ describe("polar", () => {
 describe("wheelColor", () => {
   it("stays inside sRGB, so no browser has to map it and shift the Hue", () => {
     // The bug this replaced: an out-of-gamut oklch() handed to the browser came
-    // back magenta at 100% Lightness, where white is the only color there is.
-    for (const lightness of [0, 25, 60, 95, 100]) {
-      for (const hue of [0, 90, 180, 270]) {
-        expect(isInSrgb(wheelColor(lightness, hue))).toBe(true);
-      }
+    // back magenta where white was the only color there was.
+    for (let hue = 0; hue < 360; hue++) {
+      expect(isInSrgb(wheelColor(hue))).toBe(true);
     }
   });
 
-  it("takes all the Chroma sRGB holds there", () => {
-    // oklch(62.8% 0.2577 29.23) is #ff0000: the Boundary at that Lightness and
-    // Hue, so the rim should be painted at exactly that Chroma.
-    expect(wheelColor(62.8, 29.23).chroma).toBeCloseTo(0.2577, 3);
+  it("takes all the Chroma sRGB holds at that Hue", () => {
+    const color = wheelColor(29);
+    expect(isInSrgb(color)).toBe(true);
+    expect(isInSrgb({ ...color, chroma: color.chroma + 0.01 })).toBe(false);
   });
 
-  it("keeps the Lightness and Hue it was asked for", () => {
-    expect(wheelColor(42, 137)).toMatchObject({ lightness: 42, hue: 137 });
+  it("paints every Hue at the one Lightness, whatever the slice is doing", () => {
+    expect(wheelColor(137)).toMatchObject({ lightness: 65, hue: 137 });
+    expect(wheelColor(300)).toMatchObject({ lightness: 65, hue: 300 });
   });
 });
 
