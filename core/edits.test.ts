@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   addRow,
+  canMoveRow,
   canRemoveRow,
+  destinationIndex,
   moveRow,
   removeRow,
   setChroma,
@@ -168,5 +170,27 @@ describe("moveRow", () => {
 
   it("leaves the Palette alone when the Row is already in that Socket", () => {
     expect(moveRow(three, 1, 1)).toBe(three);
+  });
+
+  it("refuses to move a lone Row, which has no other Socket to go to", () => {
+    const alone: Palette = { ...palette, rows: [palette.rows[0]] };
+    expect(canMoveRow(alone)).toBe(false);
+    expect(moveRow(alone, 0, 1)).toBe(alone);
+  });
+
+  it("allows a move while more than one Row is in the ladder", () => {
+    expect(canMoveRow(palette)).toBe(true);
+  });
+});
+
+describe("destinationIndex", () => {
+  it("is the destination while the ladder reaches that far", () => {
+    expect(destinationIndex(palette, 0)).toBe(0);
+    expect(destinationIndex(palette, 1)).toBe(1);
+  });
+
+  it("comes to rest on the end Row when the destination runs off the ladder", () => {
+    expect(destinationIndex(palette, 7)).toBe(1);
+    expect(destinationIndex(palette, -3)).toBe(0);
   });
 });

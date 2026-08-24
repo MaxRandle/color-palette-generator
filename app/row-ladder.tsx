@@ -5,7 +5,9 @@ import { NumberField } from "./number-field";
 import { CHROMA_MAX, LIGHTNESS_MAX } from "@/core/color";
 import {
   addRow,
+  canMoveRow,
   canRemoveRow,
+  destinationIndex,
   moveRow,
   removeRow,
   setChroma,
@@ -32,8 +34,8 @@ type RowLadderProps = {
 const REMOVE_CONTROL = "[data-removes-row]";
 const MOVE_CONTROL = "[data-moves-row]";
 
-function isInside(target: EventTarget | null, control: string): boolean {
-  return target instanceof Element && target.closest(control) !== null;
+function isInside(target: EventTarget | null, selector: string): boolean {
+  return target instanceof Element && target.closest(selector) !== null;
 }
 
 /**
@@ -82,16 +84,16 @@ export function RowLadder({
   onSelect,
 }: RowLadderProps) {
   const removable = canRemoveRow(palette);
-  const reorderable = palette.rows.length > 1;
+  const reorderable = canMoveRow(palette);
   const list = useRef<HTMLOListElement>(null);
   /** The index the dragged Row currently sits at, or null while none is held. */
   const [dragging, setDragging] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
-  /** The handle at one position, which is where focus belongs after a move. */
-  function handleAt(index: number): HTMLElement | null {
+  /** The move control in one Socket's Row, which is where focus belongs after a move. */
+  function moveControlAt(index: number): HTMLElement | null {
     const row = list.current?.children[index];
-    return row?.querySelector<HTMLElement>("[data-moves-row]") ?? null;
+    return row?.querySelector<HTMLElement>(MOVE_CONTROL) ?? null;
   }
 
   /**
@@ -100,19 +102,20 @@ export function RowLadder({
    * Cross-section keeps reading the Row the user was working on.
    */
   function move(from: number, to: number): number {
-    const destination = Math.min(Math.max(to, 0), palette.rows.length - 1);
+    const destination = destinationIndex(palette, to);
     if (destination === from) return from;
-    onChange(moveRow(palette, from, destination));
+    const moved = moveRow(palette, from, destination);
+    onChange(moved);
     onSelect(selectionAfterMoving(selected, from, destination));
-    const socket = (destination + 1) * 100;
+    const ladder = socketsOf(moved);
     setAnnouncement(
-      `Row moved to socket ${socket}, position ${destination + 1} of ${palette.rows.length}.`,
+      `Row moved to socket ${ladder[destination].socket.number}, ${destination + 1} of ${ladder.length}.`,
     );
     return destination;
   }
 
-  /** The position the pointer is over, by the Row boxes it is passing across. */
-  function positionUnder(clientY: number): number {
+  /** The Socket the pointer is over, by index, from the Row boxes it crosses. */
+  function socketUnder(clientY: number): number {
     const rows = Array.from(list.current?.children ?? []);
     const under = rows.findIndex((row) => clientY < row.getBoundingClientRect().bottom);
     return under === -1 ? rows.length - 1 : under;
@@ -188,9 +191,16 @@ export function RowLadder({
                 }}
                 onPointerMove={(event) => {
                   if (dragging === null) return;
-                  setDragging(move(dragging, positionUnder(event.clientY)));
+                  setDragging(move(dragging, socketUnder(event.clientY)));
                 }}
-                onPointerUp={() => setDragging(null)}
+                /* Focus follows the Row out of the drag, the same as it does
+                   out of a keyed move: the control the pointer pressed stays at
+                   the Socket the Row left, so leaving focus there would aim the
+                   next arrow key at whichever Row slid in behind it. */
+                onPointerUp={() => {
+                  if (dragging !== null) moveControlAt(dragging)?.focus();
+                  setDragging(null);
+                }}
                 onPointerCancel={() => setDragging(null)}
                 onKeyDown={(event) => {
                   if (!reorderable) return;
@@ -198,9 +208,9 @@ export function RowLadder({
                     event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
                   if (step === 0) return;
                   event.preventDefault();
-                  // Rows are keyed by position, so the handle at the destination
-                  // is already in the document: focus rides along with the Row.
-                  handleAt(move(index, index + step))?.focus();
+                  // Rows are keyed by position, so the move control in the
+                  // destination Row is already in the document: focus rides along.
+                  moveControlAt(move(index, index + step))?.focus();
                 }}
                 className="touch-none cursor-grab rounded-md py-1.5 text-sm text-zinc-500 hover:bg-zinc-100 active:cursor-grabbing aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
@@ -262,7 +272,7 @@ export function RowLadder({
       </ol>
 
       {/* Reordering renumbers every Socket below the move, which is invisible to
-          anyone not watching the ladder: the new position is spoken as it happens. */}
+          anyone not watching the ladder: the new Socket is spoken as it happens. */}
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}
       </p>
