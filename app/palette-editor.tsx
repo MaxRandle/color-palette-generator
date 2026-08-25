@@ -45,12 +45,15 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
 
   return (
     <div className="flex w-full flex-col gap-10">
-      {/* The chart is wide enough that the two columns only fit past `xl`;
-          below that the single column is the better of the two layouts anyway.
+      {/* The two columns hold down to `lg`, which they can because the chart
+          column is sized in viewport widths rather than fixed: it gives width
+          back to the ladder as the window narrows and is only at full size
+          where there is room for both. Below `lg` there is not, and the single
+          column is the better of the two layouts anyway.
           A second and third Spectrum would widen the editing column, standing
           beside this ladder and sharing the one Lightness scale. */}
-      <div className="flex flex-col gap-8 xl:grid xl:grid-cols-[minmax(0,1fr)_36rem] xl:items-start xl:gap-10">
-        <div className="order-2 flex flex-col gap-6 xl:order-1">
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(20rem,42vw,36rem)] lg:items-start lg:gap-8 xl:gap-10">
+        <div className="order-2 flex flex-col gap-6 lg:order-1">
           <h2 className={HEADING}>Palette</h2>
           <PrefixField palette={palette} onChange={setPalette} />
           {/* The scale belongs to the whole Palette rather than to one Row, so
@@ -84,10 +87,10 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
             beside it runs out, since past that there is nothing left to edit.
             Narrow, it holds the top of the viewport instead, shrunk to sit
             beside its readout so it costs a band and not a screen. */}
-        <section className="bg-background sticky top-0 z-10 order-1 flex flex-col gap-3 border-b border-zinc-200 py-3 xl:top-6 xl:order-2 xl:border-0 xl:py-0 dark:border-zinc-800">
+        <section className="bg-background sticky top-0 z-10 order-1 flex flex-col gap-3 border-b border-zinc-200 py-3 lg:top-6 lg:order-2 lg:border-0 lg:py-0 dark:border-zinc-800">
           <h2 className={HEADING}>Cross-section</h2>
-          <div className="flex items-center gap-4 xl:block xl:space-y-3">
-            <div className="w-40 shrink-0 sm:w-48 lg:w-64 xl:w-full">
+          <div className="flex items-center gap-4 lg:block lg:space-y-3">
+            <div className="w-40 shrink-0 sm:w-48 md:w-64 lg:w-full">
               <CrossSection reading={reading} />
             </div>
             {/* The readout names the Row the chart is following, so the ring
