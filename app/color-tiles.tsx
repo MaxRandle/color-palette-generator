@@ -9,7 +9,7 @@ export function ColorTiles({ cells }: { cells: readonly PaletteCell[] }) {
   return (
     <ol className="flex flex-col gap-2">
       {cells.map(({ socket, color }) => (
-        <li key={socket.number} className="grid grid-cols-2 gap-2">
+        <li key={socket.number} className="grid grid-cols-2 gap-2 w-80">
           <span className="flex h-14 items-center justify-center rounded-lg border border-zinc-200 font-mono text-lg dark:border-zinc-800">
             {socket.number}
           </span>
