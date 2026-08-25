@@ -88,8 +88,38 @@ itself; a "shade number" is the Socket's number)
 
 **Spectrum**:
 One named ramp of colors across every Socket. Contributes only Chroma and Hue — never
-Lightness. v1 has exactly one.
-_Avoid_: Ramp, scale, palette (a Palette contains Spectrums)
+Lightness. A Palette holds one or more, in the order they were created; order carries no
+meaning beyond the order they are read in.
+_Avoid_: Ramp, scale, palette (a Palette contains Spectrums), color (said of a whole
+Spectrum: the prefix is already `color` by default, so a Spectrum called a Color would put
+the word twice in one property name meaning two different things — and "color" is the right
+word for what a single Tile shows, one Spectrum at one Socket). Unlike Socket, Spectrum is
+the word the user is shown too: tabs, headings and announcements all say Spectrum.
+
+**Spectrum name**:
+What a Spectrum is called, both on screen and in the CSS it emits: the Spectrum named
+`amber` gives `--color-amber-300`. It is a CSS identifier and unique within the Palette,
+because it is part of a custom property name rather than a caption.
+_Avoid_: Label, title, heading
+
+**Spectrum id**:
+A Spectrum's identity, fixed when it is created and never shown. A Row's Stops are held
+against it, so renaming a Spectrum changes what it is called without touching a single
+authored value, and never invalidates a Palette code already shared. Internal, like Socket.
+_Avoid_: Name (the two are deliberately separate), slug, handle
+
+**Active Spectrum**:
+The one Spectrum the ladder is editing and the Cross-section is following. Exactly one is
+Active at a time, and the rest are visible only as Tiles.
+_Avoid_: Selected Spectrum, focused Spectrum, current Spectrum (a *Row* is selected; a
+Spectrum is Active, and the two move independently)
+
+**Tile**:
+One Spectrum's color at one Socket, shown as a block of that color carrying "Aa" in white
+and in black, so the legibility of text on it is visible rather than inferred from the hex.
+The Tiles stand in a grid, a column per Spectrum and a row per Socket, which is where the
+whole Palette is seen at once: the ladder shows one Spectrum, the grid shows them all.
+_Avoid_: Swatch, chip, sample
 
 **Lightness scale**:
 The single upright track beside the ladder carrying one marker per Row at its Lightness,
