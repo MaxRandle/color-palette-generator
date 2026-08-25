@@ -52,7 +52,7 @@ export function NumberField({
           aria-invalid={bound !== null}
         />
         {suffix ? (
-          <span aria-hidden className="text-sm text-zinc-500">
+          <span aria-hidden className="text-sm text-zinc-600 dark:text-zinc-400">
             {suffix}
           </span>
         ) : null}

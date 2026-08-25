@@ -32,7 +32,7 @@ export function PrefixField({
         Variable prefix
       </label>
       <div className="flex items-center gap-2">
-        <span aria-hidden className="font-mono text-sm text-zinc-500">
+        <span aria-hidden className="font-mono text-sm text-zinc-600 dark:text-zinc-400">
           --
         </span>
         <input
@@ -45,7 +45,7 @@ export function PrefixField({
           aria-describedby={error ? "prefix-error" : undefined}
           className="w-40 rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono text-sm aria-invalid:border-red-500 dark:border-zinc-700"
         />
-        <span aria-hidden className="font-mono text-sm text-zinc-500">
+        <span aria-hidden className="font-mono text-sm text-zinc-600 dark:text-zinc-400">
           -100
         </span>
       </div>

@@ -128,7 +128,7 @@ export function RowLadder({
       {/* Hidden from assistive technology: every input carries its own label. */}
       <div
         aria-hidden
-        className={`${COLUMNS} text-xs font-medium tracking-wide text-zinc-500 uppercase`}
+        className={`${COLUMNS} text-xs font-medium tracking-wide text-zinc-600 uppercase dark:text-zinc-400`}
       >
         <span />
         <span>Shade</span>
@@ -219,11 +219,11 @@ export function RowLadder({
                   // destination Row is already in the document: focus rides along.
                   moveControlAt(move(index, index + step))?.focus();
                 }}
-                className="touch-none cursor-grab rounded-md py-1.5 text-sm text-zinc-500 hover:bg-zinc-100 active:cursor-grabbing aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="touch-none cursor-grab rounded-md py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 active:cursor-grabbing aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 <span aria-hidden>⠿</span>
               </button>
-              <span className="font-mono text-sm text-zinc-500 tabular-nums">
+              <span className="font-mono text-sm text-zinc-600 tabular-nums dark:text-zinc-400">
                 {socket.number}
               </span>
               <NumberField

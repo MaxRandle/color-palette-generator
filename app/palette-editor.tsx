@@ -13,7 +13,8 @@ import { INITIAL_SELECTION, readingAt, selectedIndex } from "@/core/selection";
 import { usePersistedPalette } from "./use-persisted-palette";
 import type { Palette } from "@/core/palette";
 
-const HEADING = "text-sm font-medium tracking-wide text-zinc-500 uppercase";
+const HEADING =
+  "text-sm font-medium tracking-wide text-zinc-600 uppercase dark:text-zinc-400";
 
 /**
  * Holds the Palette being authored, and which Row the user is working on. The

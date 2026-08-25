@@ -177,7 +177,7 @@ export function CrossSection({ reading }: { reading: Reading }) {
             <g
               key={at}
               aria-hidden
-              className="fill-zinc-500 stroke-zinc-300 dark:stroke-zinc-700"
+              className="fill-zinc-600 stroke-zinc-300 dark:fill-zinc-400 dark:stroke-zinc-700"
             >
               <line
                 x1={svgCoordinate(from.x)}
