@@ -21,6 +21,16 @@ export const LIGHTNESS_MAX = 100;
  */
 export const CHROMA_MAX = 0.5;
 
+/**
+ * The step Chroma moves in when it is nudged rather than typed: a hundredth of
+ * the authoring range. Unlike the Lightness step it answers to nothing in the
+ * gamut table — Chroma is what that table holds, not an axis it is sampled
+ * along — so it is chosen for the hand: coarse enough that an arrow key is
+ * worth pressing, and still a couple of times the ~0.002 that moves a hex
+ * channel, so every press is a change someone can see.
+ */
+export const CHROMA_STEP = 0.005;
+
 /** Hue is an angle, so a full turn is the same direction as none. */
 export const FULL_TURN = 360;
 

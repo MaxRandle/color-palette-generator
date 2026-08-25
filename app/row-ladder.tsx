@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { NumberField } from "./number-field";
-import { CHROMA_MAX, LIGHTNESS_MAX } from "@/core/color";
+import { CHROMA_MAX, CHROMA_STEP, LIGHTNESS_MAX } from "@/core/color";
 import { LIGHTNESS_STEP } from "@/core/lightness-scale";
 import {
   addRow,
@@ -244,6 +244,7 @@ export function RowLadder({
                 value={stop.chroma}
                 min={0}
                 max={CHROMA_MAX}
+                step={CHROMA_STEP}
                 onCommit={(chroma) =>
                   onChange(setChroma(palette, index, spectrum.id, chroma))
                 }
