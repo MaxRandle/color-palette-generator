@@ -67,15 +67,24 @@ sitting in numbered Sockets, and one or more Spectrums.
 **Socket**:
 A numbered position in the palette's ladder. Its number counts up in multiples of 100 from
 its index, so it is a property of position, not of what occupies it. A Socket owns nothing
-but its number.
+but its number. Internal: the word names the mechanism — the place a Row is dragged into —
+and never appears on screen. See Shade for what the user is shown.
 _Avoid_: Slot, position
+
+**Shade**:
+What a Socket is called in the UI: "Shade 300" is the color the Palette offers at Socket
+300, in whichever Spectrum is being read. It is the same number, said the way someone
+picking a color from the output says it — they are choosing a shade, not addressing a
+position in a ladder. Code says Socket; labels, readouts and announcements say Shade.
+_Avoid_: Socket (in any user-facing string), step, level, tone
 
 **Row**:
 The unit that occupies a Socket: one Lightness, plus one Stop per Spectrum. Rows are what
 the user drags; a Row moving to another Socket takes that Socket's number. Because a Row
 spans every Spectrum, dragging one rearranges all Spectrums together and the shared ladder
 survives. Equal Socket number means equal perceived Lightness across every Spectrum.
-_Avoid_: Shade, step, rung, level, tone (a "shade number" is the Socket's number)
+_Avoid_: Shade, step, rung, level, tone (a Row is what *occupies* a Shade, not the Shade
+itself; a "shade number" is the Socket's number)
 
 **Spectrum**:
 One named ramp of colors across every Socket. Contributes only Chroma and Hue — never

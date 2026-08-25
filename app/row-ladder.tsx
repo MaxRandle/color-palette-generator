@@ -109,7 +109,7 @@ export function RowLadder({
     onSelect(selectionAfterMoving(selected, from, destination));
     const ladder = socketsOf(moved);
     setAnnouncement(
-      `Row moved to socket ${ladder[destination].socket.number}, ${destination + 1} of ${ladder.length}.`,
+      `Row moved to shade ${ladder[destination].socket.number}, ${destination + 1} of ${ladder.length}.`,
     );
     return destination;
   }
@@ -138,15 +138,16 @@ export function RowLadder({
       </div>
 
       <p id={HANDLE_HINT} className="sr-only">
-        Press arrow up or arrow down to move this row to another socket. The row
-        carries its lightness with it and takes the destination socket&rsquo;s
+        Press arrow up or arrow down to move this row to another shade. The row
+        carries its lightness with it and takes the destination shade&rsquo;s
         number.
       </p>
 
       <ol ref={list} className="flex flex-col gap-2">
         {socketsOf(palette).map(({ socket, row }, index) => {
           const stop = row.stops[spectrum.id];
-          const at = `at socket ${socket.number}`;
+          // The Socket is named to the user as the shade it numbers.
+          const at = `at shade ${socket.number}`;
           return (
             /* Two ways in, because selection is not focus: focus capture is
                what makes tabbing between fields move the selection, and the

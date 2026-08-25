@@ -89,7 +89,7 @@ export function LightnessScale({
             type="button"
             role="slider"
             aria-orientation="vertical"
-            aria-label={`Lightness at socket ${socket.number}`}
+            aria-label={`Lightness at shade ${socket.number}`}
             aria-valuemin={0}
             aria-valuemax={LIGHTNESS_MAX}
             aria-valuenow={lightness}

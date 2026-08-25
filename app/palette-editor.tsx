@@ -97,7 +97,7 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
                 and the line can be read back as numbers rather than
                 eyeballed. */}
             <p className="font-mono text-sm text-zinc-600 tabular-nums dark:text-zinc-400">
-              Socket {reading.socket.number} — {reading.color.lightness}%
+              Shade {reading.socket.number} — {reading.color.lightness}%
               lightness, {reading.color.chroma} chroma, {reading.color.hue}° hue
             </p>
           </div>
