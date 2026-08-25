@@ -30,14 +30,17 @@ export function markersOf(palette: Palette): LightnessMarker[] {
 }
 
 /**
- * The step a drag lands on, per ADR-0002: it is the Lightness resolution the
- * gamut table is sampled at, so a dragged Lightness names a row of that table
- * exactly and the Cross-section needs no interpolation to follow the drag.
+ * The step Lightness moves in when it is nudged rather than typed, per
+ * ADR-0002: it is the resolution the gamut table is sampled at, so a Lightness
+ * on this grid names a row of that table exactly and the Cross-section needs no
+ * interpolation to follow it. Every way of nudging shares it — the scale's
+ * drag, the scale's arrow keys, and the arrow keys in the ladder's Lightness
+ * field — so the three cannot drift apart.
  *
- * Only the drag snaps: a typed Lightness keeps whatever precision it was given,
+ * Only nudging snaps: a typed Lightness keeps whatever precision it was given,
  * so a marker can hold a value no drag could have produced.
  */
-export const LIGHTNESS_DRAG_STEP = 0.5;
+export const LIGHTNESS_STEP = 0.5;
 
 /**
  * The Lightness a drag to this fraction of the track means. A pointer that runs
@@ -46,7 +49,7 @@ export const LIGHTNESS_DRAG_STEP = 0.5;
  */
 export function draggedLightness(fraction: number): number {
   const lightness = Math.min(Math.max(fraction, 0), 1) * LIGHTNESS_MAX;
-  return Math.round(lightness / LIGHTNESS_DRAG_STEP) * LIGHTNESS_DRAG_STEP;
+  return Math.round(lightness / LIGHTNESS_STEP) * LIGHTNESS_STEP;
 }
 
 /**
@@ -56,7 +59,7 @@ export function draggedLightness(fraction: number): number {
  * nudge moves towards, rather than carrying its offset along the track.
  */
 export function nudgedLightness(lightness: number, direction: number): number {
-  const stepped = lightness + direction * LIGHTNESS_DRAG_STEP;
+  const stepped = lightness + direction * LIGHTNESS_STEP;
   return draggedLightness(stepped / LIGHTNESS_MAX);
 }
 

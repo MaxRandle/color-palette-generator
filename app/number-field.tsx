@@ -10,6 +10,11 @@ type NumberFieldProps = {
   /** Omitted where the value wraps instead of being bounded, as Hue does. */
   min?: number;
   max?: number;
+  /**
+   * What one press of an arrow key moves the value by. Left open by default:
+   * a component with no grid of its own should not invent one.
+   */
+  step?: number;
   suffix?: string;
 };
 
@@ -24,6 +29,7 @@ export function NumberField({
   onCommit,
   min,
   max,
+  step,
   suffix,
 }: NumberFieldProps) {
   const draft = useDraft(String(value));
@@ -41,7 +47,12 @@ export function NumberField({
         <input
           type="number"
           inputMode="decimal"
-          step="any"
+          // A step bounds the arrow keys, not the keyboard: a value typed
+          // between two steps is still accepted and still committed, and the
+          // next arrow press brings it onto the grid. The browser marks such a
+          // value `stepMismatch`, which is inert here — the field decides its
+          // own `aria-invalid`, styles off that, and is in no form to submit.
+          step={step ?? "any"}
           min={min}
           max={max}
           aria-label={label}
@@ -52,14 +63,20 @@ export function NumberField({
           aria-invalid={bound !== null}
         />
         {suffix ? (
-          <span aria-hidden className="text-sm text-zinc-600 dark:text-zinc-400">
+          <span
+            aria-hidden
+            className="text-sm text-zinc-600 dark:text-zinc-400"
+          >
             {suffix}
           </span>
         ) : null}
       </span>
       {/* Otherwise the field and the tiles would silently disagree: the Palette
           holds the bounded value while the field still shows what was typed. */}
-      <span role="status" className="text-xs text-amber-600 dark:text-amber-500">
+      <span
+        role="status"
+        className="text-xs text-amber-600 dark:text-amber-500"
+      >
         {bound === null ? "" : `Held at ${bound}${suffix ?? ""}`}
       </span>
     </span>
@@ -67,7 +84,11 @@ export function NumberField({
 }
 
 /** The bound the typed value overshot, or null while it is within range. */
-function boundExceededBy(typed: string, min?: number, max?: number): number | null {
+function boundExceededBy(
+  typed: string,
+  min?: number,
+  max?: number,
+): number | null {
   const parsed = Number(typed);
   if (typed.trim() === "" || !Number.isFinite(parsed)) return null;
   if (min !== undefined && parsed < min) return min;

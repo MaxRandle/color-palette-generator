@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { NumberField } from "./number-field";
 import { CHROMA_MAX, LIGHTNESS_MAX } from "@/core/color";
+import { LIGHTNESS_STEP } from "@/core/lightness-scale";
 import {
   addRow,
   canMoveRow,
@@ -232,6 +233,7 @@ export function RowLadder({
                 value={row.lightness}
                 min={0}
                 max={LIGHTNESS_MAX}
+                step={LIGHTNESS_STEP}
                 suffix="%"
                 onCommit={(lightness) =>
                   onChange(setLightness(palette, index, lightness))
