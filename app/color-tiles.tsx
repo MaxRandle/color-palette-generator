@@ -104,8 +104,11 @@ export function ColorTiles({ palette, selection, onSelect }: ColorTilesProps) {
 
   return (
     // The scroller, not the grid: the grid is sized by its columns, and once
-    // they no longer fit it is this box that carries the overflow.
-    <div className="overflow-x-auto">
+    // they no longer fit it is this box that carries the overflow. Padded by
+    // the reach of the current Tile's ring — 2px of ring over a 2px offset —
+    // because a box that scrolls in one axis clips the other, which would take
+    // the mark off a Tile at any edge of the grid.
+    <div className="overflow-x-auto p-1">
       <div
         ref={grid}
         role="grid"
