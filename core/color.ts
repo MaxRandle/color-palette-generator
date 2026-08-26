@@ -57,7 +57,25 @@ function toCulori(color: OklchColor): Oklch {
   };
 }
 
-const toSrgb = converter("rgb");
+/**
+ * A gamut a color can be shown in. sRGB is the one a hex value can express, and
+ * so the one export is bound to; Display P3 is the wider gamut most current
+ * screens have, and holds appreciably more Chroma at every Hue.
+ */
+export type Gamut = "srgb" | "display-p3";
+
+/**
+ * Each gamut's channels, as culori reads them. Both converters answer in r, g
+ * and b on a 0–1 scale, which is all the in-gamut test needs to know about
+ * either of them.
+ */
+const channelsIn: Record<
+  Gamut,
+  (color: Oklch) => { r: number; g: number; b: number }
+> = {
+  srgb: converter("rgb"),
+  "display-p3": converter("p3"),
+};
 
 /**
  * Half an 8-bit step. A channel this far outside [0, 1] rounds to the same hex
@@ -67,13 +85,18 @@ const toSrgb = converter("rgb");
  */
 const CHANNEL_TOLERANCE = 0.5 / 255;
 
-/** Whether a color maps to a hex value, and so needs no Fallback. */
-export function isInSrgb(color: OklchColor): boolean {
-  const { r, g, b } = toSrgb(toCulori(color));
+/** Whether a color fits inside a gamut, and so needs nothing pulled in. */
+export function isInGamut(color: OklchColor, gamut: Gamut): boolean {
+  const { r, g, b } = channelsIn[gamut](toCulori(color));
   return [r, g, b].every(
     (channel) =>
       channel >= -CHANNEL_TOLERANCE && channel <= 1 + CHANNEL_TOLERANCE,
   );
+}
+
+/** Whether a color maps to a hex value, and so needs no Fallback. */
+export function isInSrgb(color: OklchColor): boolean {
+  return isInGamut(color, "srgb");
 }
 
 function toHex(color: OklchColor): string {
@@ -81,22 +104,26 @@ function toHex(color: OklchColor): string {
 }
 
 /**
- * How precisely the search brackets the sRGB region's Boundary, in Chroma.
+ * How precisely the search brackets a gamut's Boundary, in Chroma.
  * Well below the ~0.002 that moves a hex channel by one step.
  */
-const SRGB_BOUNDARY_PRECISION = 0.00005;
+const BOUNDARY_PRECISION = 0.00005;
 
 /**
- * The sRGB region's Boundary: the greatest Chroma that still maps to a hex
- * value at this Lightness and Hue. Binary search, never RGB clipping —
- * clipping moves the channels independently and shifts the Hue.
+ * A gamut's Boundary: the greatest Chroma it still holds at this Lightness and
+ * Hue. Binary search, never RGB clipping — clipping moves the channels
+ * independently and shifts the Hue.
  */
-export function maxSrgbChroma(lightness: number, hue: number): number {
+export function maxChromaIn(
+  lightness: number,
+  hue: number,
+  gamut: Gamut,
+): number {
   let inside = 0;
   let outside = CHROMA_MAX;
-  while (outside - inside > SRGB_BOUNDARY_PRECISION) {
+  while (outside - inside > BOUNDARY_PRECISION) {
     const midpoint = (inside + outside) / 2;
-    if (isInSrgb({ lightness, chroma: midpoint, hue })) {
+    if (isInGamut({ lightness, chroma: midpoint, hue }, gamut)) {
       inside = midpoint;
     } else {
       outside = midpoint;
@@ -105,12 +132,26 @@ export function maxSrgbChroma(lightness: number, hue: number): number {
   return inside;
 }
 
-/** The Fallback: the same Lightness and Hue, pulled in to the sRGB region. */
-export function fallbackFor(color: OklchColor): OklchColor {
+/** The sRGB region's Boundary: the greatest Chroma that still maps to a hex value. */
+export function maxSrgbChroma(lightness: number, hue: number): number {
+  return maxChromaIn(lightness, hue, "srgb");
+}
+
+/**
+ * The same Lightness and Hue, with Chroma pulled back until the color fits the
+ * gamut. The one operation both the Fallback and the chart's own painting are
+ * built from, so neither can drift into clipping.
+ */
+export function pulledInto(color: OklchColor, gamut: Gamut): OklchColor {
   return {
     ...color,
-    chroma: Math.min(color.chroma, maxSrgbChroma(color.lightness, color.hue)),
+    chroma: Math.min(color.chroma, maxChromaIn(color.lightness, color.hue, gamut)),
   };
+}
+
+/** The Fallback: the same Lightness and Hue, pulled in to the sRGB region. */
+export function fallbackFor(color: OklchColor): OklchColor {
+  return pulledInto(color, "srgb");
 }
 
 /** Resolve one Spectrum's Stop at one Row into a color ready to render and export. */

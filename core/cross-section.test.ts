@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHROMA_MAX, isInSrgb, maxSrgbChroma } from "./color";
+import { CHROMA_MAX, isInGamut, isInSrgb, maxSrgbChroma } from "./color";
 import {
   INK_FLIP,
   chromaAndHueAt,
@@ -247,23 +247,34 @@ describe("polar", () => {
 });
 
 describe("wheelColor", () => {
-  it("stays inside sRGB, so no browser has to map it and shift the Hue", () => {
+  it("stays inside the gamut asked for, so no browser has to map it and shift the Hue", () => {
     // The bug this replaced: an out-of-gamut oklch() handed to the browser came
     // back magenta where white was the only color there was.
     for (let hue = 0; hue < 360; hue++) {
-      expect(isInSrgb(wheelColor(hue))).toBe(true);
+      expect(isInGamut(wheelColor(hue, "srgb"), "srgb")).toBe(true);
+      expect(isInGamut(wheelColor(hue, "display-p3"), "display-p3")).toBe(true);
     }
   });
 
-  it("takes all the Chroma sRGB holds at that Hue", () => {
-    const color = wheelColor(29);
+  it("takes all the Chroma the gamut holds at that Hue", () => {
+    const color = wheelColor(29, "srgb");
     expect(isInSrgb(color)).toBe(true);
     expect(isInSrgb({ ...color, chroma: color.chroma + 0.01 })).toBe(false);
   });
 
+  it("is more vivid on a wide-gamut screen, at every Hue", () => {
+    // The point of the whole thing: the rim is not held back to what a hex
+    // value could have said when the screen can show more.
+    for (let hue = 0; hue < 360; hue++) {
+      expect(wheelColor(hue, "display-p3").chroma).toBeGreaterThan(
+        wheelColor(hue, "srgb").chroma,
+      );
+    }
+  });
+
   it("paints every Hue at the one Lightness, whatever the slice is doing", () => {
-    expect(wheelColor(137)).toMatchObject({ lightness: 65, hue: 137 });
-    expect(wheelColor(300)).toMatchObject({ lightness: 65, hue: 300 });
+    expect(wheelColor(137, "srgb")).toMatchObject({ lightness: 65, hue: 137 });
+    expect(wheelColor(300, "srgb")).toMatchObject({ lightness: 65, hue: 300 });
   });
 });
 

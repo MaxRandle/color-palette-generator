@@ -44,7 +44,18 @@ _Avoid_: Envelope, limit, edge
 
 **sRGB region**:
 The area of the cross-section that maps to a hex value. Colors outside it cannot be
-exported and must fall back.
+exported and must fall back. Drawn as a contour over the field rather than as the field's
+own edge: on a wide-gamut screen it sits plainly inside where the field flattens, and the
+gap between the two is exactly what a hex value cannot say.
+
+**Display gamut**:
+The widest gamut the screen the page is being read on can show: Display P3 where the
+browser reports one, sRGB otherwise. The Cross-section's field and the wheel's rim are
+painted in it, so they carry every bit of Chroma the screen has rather than only what a
+hex value could have expressed. It changes nothing about the Palette: authored values,
+the Fallback and the export are all untouched by which screen is looking.
+_Avoid_: Device gamut, monitor gamut, P3 (said of the concept: on a screen with nothing
+more than sRGB, the Display gamut *is* sRGB)
 
 **Optimal color solid**:
 The Rösch–MacAdam limits — the set of colors producible by a physical surface under a

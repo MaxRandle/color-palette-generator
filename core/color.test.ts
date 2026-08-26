@@ -3,8 +3,11 @@ import { clampRgb, converter, oklch } from "culori";
 import {
   CHROMA_MAX,
   fallbackFor,
+  isInGamut,
   isInSrgb,
+  maxChromaIn,
   maxSrgbChroma,
+  pulledInto,
   resolve,
 } from "./color";
 import { maxChroma } from "./gamut/max-chroma";
@@ -173,5 +176,37 @@ describe("fallbackFor", () => {
       hue: 137,
     });
     expect({ lightness, hue }).toEqual({ lightness: 25, hue: 137 });
+  });
+});
+
+describe("the Display P3 gamut", () => {
+  it("holds more Chroma than sRGB at every Hue", () => {
+    for (let hue = 0; hue < 360; hue += 5) {
+      expect(maxChromaIn(65, hue, "display-p3")).toBeGreaterThan(
+        maxSrgbChroma(65, hue),
+      );
+    }
+  });
+
+  it("takes in colors sRGB has to turn away", () => {
+    const vivid = { lightness: 65, chroma: 0.28, hue: 29 };
+    expect(isInSrgb(vivid)).toBe(false);
+    expect(isInGamut(vivid, "display-p3")).toBe(true);
+  });
+
+  it("leaves a color it already holds exactly where it was authored", () => {
+    const vivid = { lightness: 65, chroma: 0.28, hue: 29 };
+    expect(pulledInto(vivid, "display-p3")).toEqual(vivid);
+    expect(pulledInto(vivid, "srgb")).toEqual(fallbackFor(vivid));
+  });
+
+  it("pulls Chroma alone, so a color keeps the Hue it was authored at", () => {
+    const { lightness, chroma, hue } = pulledInto(
+      { lightness: 50, chroma: CHROMA_MAX, hue: 264.1 },
+      "display-p3",
+    );
+    expect(lightness).toBe(50);
+    expect(hue).toBe(264.1);
+    expect(chroma).toBeCloseTo(maxChromaIn(50, 264.1, "display-p3"), 10);
   });
 });

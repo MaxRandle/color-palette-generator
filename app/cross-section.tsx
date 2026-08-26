@@ -13,16 +13,21 @@ import {
   svgCoordinate,
   wheelColor,
 } from "@/core/cross-section";
-import type { OklchColor } from "@/core/color";
+import type { Gamut, OklchColor } from "@/core/color";
 import { CHROMA_MAX } from "@/core/color";
 import { sliceField } from "@/core/cross-section-field";
 import type { Ink } from "@/core/cross-section";
 import type { Reading } from "@/core/selection";
+import { useDisplayGamut } from "./use-display-gamut";
 
 /** The chart's side, in SVG user units; it scales to whatever box it is given. */
 const SIZE = 320;
 
-/** An Oklch color as CSS. In gamut already, so no browser has to map it. */
+/**
+ * An Oklch color as CSS. Already inside the screen's own gamut, so no browser
+ * has to map it: what is written here is what is shown, up to whatever Chroma
+ * the screen holds.
+ */
 function cssColor({ lightness, chroma, hue }: OklchColor): string {
   return `oklch(${lightness}% ${chroma} ${hue})`;
 }
@@ -91,22 +96,41 @@ const PLOT_SIDE = `${(SIZE / (SIZE + MARGIN * 2)) * 100}%`;
  * repainted on Lightness alone: Chroma and Hue edits move the indicators
  * without touching a pixel.
  *
+ * The canvas is keyed on the gamut because a canvas hands back the context it
+ * already has and quietly ignores the options asked for the second time, so a
+ * screen change has to arrive as a fresh element or not at all.
+ *
  * The backing store is the chart's own SIZE rather than the device's pixels. A
  * field of color has no fine detail to lose, and the layer that does — the
  * outlines, the wheel, the indicators — is vector and above it.
  */
-function SliceField({ lightness }: { lightness: number }) {
+function SliceField({
+  lightness,
+  gamut,
+}: {
+  lightness: number;
+  gamut: Gamut;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const context = canvas.current?.getContext("2d");
+    const context = canvas.current?.getContext("2d", { colorSpace: gamut });
     if (!context) return;
-    const pixels = sliceField(lightness, SIZE);
-    context.putImageData(new ImageData(pixels, SIZE, SIZE), 0, 0);
-  }, [lightness]);
+    /* What the browser gave, not what was asked for: one without a wide-gamut
+       canvas hands back an sRGB context all the same, and P3 bytes put into it
+       would be shown as sRGB ones, which is the Hue shift this all avoids. */
+    const colorSpace = context.getContextAttributes().colorSpace ?? "srgb";
+    const pixels = sliceField(lightness, SIZE, colorSpace);
+    context.putImageData(
+      new ImageData(pixels, SIZE, SIZE, { colorSpace }),
+      0,
+      0,
+    );
+  }, [lightness, gamut]);
 
   return (
     <canvas
+      key={gamut}
       ref={canvas}
       width={SIZE}
       height={SIZE}
@@ -133,6 +157,7 @@ function SliceField({ lightness }: { lightness: number }) {
  */
 export function CrossSection({ reading }: { reading: Reading }) {
   const { lightness, chroma, hue } = reading.color;
+  const gamut = useDisplayGamut();
   const hueLineEnd = plot(CHROMA_MAX, hue, SIZE);
   const ink = inkFor(lightness);
 
@@ -153,7 +178,7 @@ export function CrossSection({ reading }: { reading: Reading }) {
 
   return (
     <div className="relative aspect-square w-full max-w-xl">
-      <SliceField lightness={lightness} />
+      <SliceField lightness={lightness} gamut={gamut} />
       <svg
         viewBox={`${-MARGIN} ${-MARGIN} ${SIZE + MARGIN * 2} ${SIZE + MARGIN * 2}`}
         className="relative h-full w-full"
@@ -165,7 +190,7 @@ export function CrossSection({ reading }: { reading: Reading }) {
             <path
               key={at}
               d={path}
-              stroke={cssColor(wheelColor(at))}
+              stroke={cssColor(wheelColor(at, gamut))}
             />
           ))}
         </g>

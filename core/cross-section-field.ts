@@ -2,38 +2,62 @@
  * The Cross-section's color field: the slice interior painted per pixel, so the
  * user can orient by Hue without reading the angle off the wheel.
  *
- * The field is decoration; the shape is the specification. Pixels outside the
- * sRGB region are painted with their Fallback — never by RGB clipping, which
- * shifts Hue and would corrupt the angular axis. A consequence worth relying
- * on: every point beyond the sRGB Boundary at one Hue paints as the same color,
- * so the field goes radially flat there and the flatness marks the edge.
+ * The field is decoration; the shape is the specification. It is painted in the
+ * gamut of the screen it is being shown on rather than always in sRGB, so a
+ * wide-gamut screen gets the Chroma it can actually show. Pixels past that
+ * gamut have their Chroma pulled back to its Boundary — never RGB clipping,
+ * which shifts Hue and would corrupt the angular axis. A consequence worth
+ * relying on: every point beyond the Boundary at one Hue paints as the same
+ * color, so the field goes radially flat there and the flatness marks the edge.
+ * The sRGB region's contour is drawn over the field by the chart, so on a wide
+ * screen it sits plainly inside where the field flattens: what is exportable
+ * and what is showable stop being the same line.
  */
 
-import { CHROMA_MAX, type OklchColor } from "./color";
+import { CHROMA_MAX, type Gamut, type OklchColor } from "./color";
 import {
   DEGREES,
   chromaAndHueAt,
   chromaAt,
-  srgbRegionBoundary,
+  regionBoundary,
   visibleGamutBoundary,
 } from "./cross-section";
 
 /**
- * Oklch to sRGB bytes, inlined from the CSS Color 4 matrices rather than run
- * through culori. A slice is a hundred thousand pixels and is repainted on
- * every Lightness edit; culori's per-color object churn is what made that not
- * feel live. `culori` remains the reference this is tested against, so the two
- * cannot drift.
+ * Oklab's cube-rooted cone responses to each gamut's linear channels, one row
+ * per channel, flat so the inner loop can read it without unpacking anything.
  *
- * It must only be handed colors already inside the sRGB region: the Fallback is
- * what puts them there. A channel a hair outside saturates at its byte, which
- * is the 8-bit rounding every color goes through, not a gamut decision.
+ * The sRGB rows are the CSS Color 4 matrices; the Display P3 rows are the same
+ * transform carried on through to P3's primaries. `culori` remains the
+ * reference both are tested against, so they cannot drift from it.
  */
-export function srgbBytes({
-  lightness,
-  chroma,
-  hue,
-}: OklchColor): readonly [number, number, number] {
+const MATRIX: Record<Gamut, Float64Array> = {
+  srgb: Float64Array.of(
+    4.0767416360759574, -3.3077115392580616, 0.2309699031821044,
+    -1.2684379732850317, 2.6097573492876887, -0.3413193760026573,
+    -0.0041960761386756, -0.7034186179359362, 1.7076146940746117,
+  ),
+  "display-p3": Float64Array.of(
+    3.1277689713618737, -2.2571357625916377, 0.1293667912297652,
+    -1.0910090184377983, 2.4133317103069221, -0.3223226918691251,
+    -0.0260108019385705, -0.5080413317041669, 1.5340521336427377,
+  ),
+};
+
+/**
+ * Oklch to a gamut's bytes, inlined rather than run through culori. A slice is
+ * a hundred thousand pixels and is repainted on every Lightness edit; culori's
+ * per-color object churn is what made that not feel live.
+ *
+ * It must only be handed colors already inside the gamut asked for: pulling
+ * them in is what puts them there. A channel a hair outside saturates at its
+ * byte, which is the 8-bit rounding every color goes through, not a gamut
+ * decision.
+ */
+export function gamutBytes(
+  { lightness, chroma, hue }: OklchColor,
+  gamut: Gamut,
+): readonly [number, number, number] {
   const angle = hue * DEGREES;
   const l = lightness / 100;
   const a = chroma * Math.cos(angle);
@@ -43,26 +67,18 @@ export function srgbBytes({
   const medium = (l - 0.1055613458156586 * a - 0.0638541728258133 * b) ** 3;
   const short = (l - 0.0894841775298119 * a - 1.2914855480194092 * b) ** 3;
 
+  const m = MATRIX[gamut];
   return [
-    encode(
-      4.0767416360759574 * long -
-        3.3077115392580616 * medium +
-        0.2309699031821044 * short,
-    ),
-    encode(
-      -1.2684379732850317 * long +
-        2.6097573492876887 * medium -
-        0.3413193760026573 * short,
-    ),
-    encode(
-      -0.0041960761386756 * long -
-        0.7034186179359362 * medium +
-        1.7076146940746117 * short,
-    ),
+    encode(m[0] * long + m[1] * medium + m[2] * short),
+    encode(m[3] * long + m[4] * medium + m[5] * short),
+    encode(m[6] * long + m[7] * medium + m[8] * short),
   ];
 }
 
-/** One linear-light channel as an 8-bit sRGB byte. */
+/**
+ * One linear-light channel as an 8-bit byte. sRGB's transfer function, which
+ * Display P3 shares: the two differ in their primaries, not in their curve.
+ */
 function encode(channel: number): number {
   const magnitude = Math.abs(channel);
   const encoded =
@@ -87,10 +103,11 @@ const OPAQUE = 255;
 export function sliceField(
   lightness: number,
   size: number,
+  gamut: Gamut,
 ): Uint8ClampedArray<ArrayBuffer> {
   const pixels = new Uint8ClampedArray(size * size * CHANNELS);
   const visible = visibleGamutBoundary(lightness);
-  const srgb = srgbRegionBoundary(lightness);
+  const showable = regionBoundary(lightness, gamut);
   /** How much Chroma one pixel spans, the width the edge is feathered over. */
   const perPixel = CHROMA_MAX / (size / 2);
 
@@ -102,15 +119,18 @@ export function sliceField(
       const coverage = (chromaAt(visible, hue) - chroma) / perPixel + 0.5;
       if (coverage <= 0) continue;
 
-      const [red, green, blue] = srgbBytes({
-        lightness,
-        // The Fallback: Chroma pulled back to the sRGB region's Boundary,
-        // holding Lightness and Hue. It is read off the sampled Boundary
-        // rather than searched for again per pixel, which is `fallbackFor` to
-        // within the sampling — near enough that the two agree to the byte.
-        chroma: Math.min(chroma, chromaAt(srgb, hue)),
-        hue,
-      });
+      const [red, green, blue] = gamutBytes(
+        {
+          lightness,
+          // Chroma pulled back to the gamut's own Boundary, holding Lightness
+          // and Hue. It is read off the sampled Boundary rather than searched
+          // for again per pixel, which is `pulledInto` to within the sampling
+          // — near enough that the two agree to the byte.
+          chroma: Math.min(chroma, chromaAt(showable, hue)),
+          hue,
+        },
+        gamut,
+      );
       pixels[index] = red;
       pixels[index + 1] = green;
       pixels[index + 2] = blue;

@@ -7,9 +7,11 @@
 import {
   CHROMA_MAX,
   FULL_TURN,
-  fallbackFor,
+  type Gamut,
+  maxChromaIn,
   maxSrgbChroma,
   type OklchColor,
+  pulledInto,
 } from "./color";
 import { maxChroma } from "./gamut/max-chroma";
 
@@ -103,7 +105,12 @@ export function visibleGamutBoundary(lightness: number): Boundary {
   return sample((hue) => maxChroma(lightness, hue));
 }
 
-/** Where the sRGB region ends at one Lightness. */
+/** Where a gamut ends at one Lightness. */
+export function regionBoundary(lightness: number, gamut: Gamut): Boundary {
+  return sample((hue) => maxChromaIn(lightness, hue, gamut));
+}
+
+/** Where the sRGB region ends at one Lightness: the contour drawn in the chart. */
 export function srgbRegionBoundary(lightness: number): Boundary {
   return sample((hue) => maxSrgbChroma(lightness, hue));
 }
@@ -169,16 +176,17 @@ export function hueWheel(size: number): readonly HueArc[] {
 const WHEEL_LIGHTNESS = 65;
 
 /**
- * One Hue on the rim, with as much Chroma as the sRGB region holds there. It
- * asks for the authoring ceiling and takes what it can get, so each arc is the
- * most vivid color there is at its Hue.
+ * One Hue on the rim, with as much Chroma as the gamut holds there. It asks for
+ * the authoring ceiling and takes what it can get, so each arc is the most
+ * vivid color the screen has at its Hue: on a wide-gamut screen that is well
+ * past anything a hex value could have said.
  *
- * Through the Fallback rather than straight into an `oklch()` a browser would
- * have to gamut map: handed a color outside its gamut, a browser clips the
- * channels one by one, which shifts the Hue.
+ * Pulled into the gamut here rather than handed to a browser as an out-of-gamut
+ * `oklch()`: given a color its display cannot show, a browser clips the
+ * channels one by one, which shifts the Hue and makes the angular axis lie.
  */
-export function wheelColor(hue: number): OklchColor {
-  return fallbackFor({ lightness: WHEEL_LIGHTNESS, chroma: CHROMA_MAX, hue });
+export function wheelColor(hue: number, gamut: Gamut): OklchColor {
+  return pulledInto({ lightness: WHEEL_LIGHTNESS, chroma: CHROMA_MAX, hue }, gamut);
 }
 
 /**
