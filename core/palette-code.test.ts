@@ -109,7 +109,7 @@ describe("what a code carries", () => {
         { lightness: 95, chromas: { p1: 0.4 }, stops: { brand: { hue: 264 } } },
       ],
     };
-    expect(resolve(outside.rows[0], outside.spectrums[0]).fellBack).toBe(true);
+    expect(resolve(outside, outside.rows[0], outside.spectrums[0]).fellBack).toBe(true);
     expect(decodePalette(encodePalette(outside))?.rows[0]).toEqual({
       lightness: 95,
       chromas: { p1: 0.4 },

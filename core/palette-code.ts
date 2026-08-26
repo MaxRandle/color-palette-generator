@@ -22,7 +22,7 @@ const VERSION = "2";
  * The format this one replaced, which held a Chroma per Spectrum per Row rather
  * than Chroma profiles. Read and upgraded rather than refused: a code from an
  * older format is known, not unknown, so opening it is a translation and not a
- * guess. See ADR-0005.
+ * guess. See ADR-0006.
  */
 const PREVIOUS_VERSION = "1";
 
@@ -99,7 +99,7 @@ function decodeText(field: string): string | null {
 
 /** A number the app could have written: finite, and inside its authoring range. */
 function decodeBounded(text: string, max: number): number | null {
-  if (text === undefined || text.trim() === "") return null;
+  if (text.trim() === "") return null;
   const value = Number(text);
   if (!Number.isFinite(value) || value < 0 || value > max) return null;
   return value;
@@ -122,12 +122,29 @@ function decodeProfile(
   field: string,
   decoded: readonly ChromaProfile[],
 ): ChromaProfile | null {
+  const named = decodeNamed(field, decoded);
+  if (named === null) return null;
+  if (chromaProfileNameError(decoded, named.id, named.name) !== null) {
+    return null;
+  }
+  return named;
+}
+
+/** An id and a name, which is what a profile is and what version 1's Spectrums were. */
+type Named = { readonly id: string; readonly name: string };
+
+/**
+ * The id-and-name pair both formats open a profile and a Spectrum with, read
+ * against the ones already decoded. The name rule is the caller's, because it
+ * is the one thing that differs between the two: an id has to be present and
+ * distinct either way, since two things sharing one share every Row's values.
+ */
+function decodeNamed(field: string, decoded: readonly Named[]): Named | null {
   const parts = field.split(PAIR);
   if (parts.length !== 2) return null;
   const [id, name] = parts.map(decodeText);
   if (id === null || name === null || id === "") return null;
-  if (decoded.some((profile) => profile.id === id)) return null;
-  if (chromaProfileNameError(decoded, id, name) !== null) return null;
+  if (decoded.some((each) => each.id === id)) return null;
   return { id, name };
 }
 
@@ -247,18 +264,21 @@ function decodePrefix(field: string): string | null {
 /** One version 1 Spectrum, which carried no profile. */
 type PreviousSpectrum = Pick<Spectrum, "id" | "name">;
 
+/**
+ * A Row read out of a version 1 code, before its Chromas have somewhere to go:
+ * those are gathered as columns across the whole ladder, since it takes every
+ * Row to tell whether two Spectrums shared a profile.
+ */
+type ChromalessRow = Omit<Row, "chromas">;
+
 function decodePreviousSpectrum(
   field: string,
   decoded: readonly PreviousSpectrum[],
 ): PreviousSpectrum | null {
-  const parts = field.split(PAIR);
-  if (parts.length !== 2) return null;
-  const [id, name] = parts.map(decodeText);
-  if (id === null || name === null || id === "") return null;
-  if (decoded.some((spectrum) => spectrum.id === id)) return null;
-  // The name rule reads a full Spectrum, and only ever at its name and id.
-  if (spectrumNameError(decoded as Spectrum[], id, name) !== null) return null;
-  return { id, name };
+  const named = decodeNamed(field, decoded);
+  if (named === null) return null;
+  if (spectrumNameError(decoded, named.id, named.name) !== null) return null;
+  return named;
 }
 
 /**
@@ -288,7 +308,7 @@ function decodePreviousVersion(fields: readonly string[]): Palette | null {
 
   /** One Chroma column per Spectrum, in Spectrum order, a value per Row. */
   const columns: number[][] = spectrums.map(() => []);
-  const skeleton: { lightness: number; stops: Record<string, Stop> }[] = [];
+  const chromaless: ChromalessRow[] = [];
 
   for (const field of rowFields) {
     const numbers = field.split(ITEM);
@@ -303,10 +323,10 @@ function decodePreviousVersion(fields: readonly string[]): Palette | null {
       columns[at].push(chroma);
       stops[spectrum.id] = { hue };
     }
-    skeleton.push({ lightness, stops });
+    chromaless.push({ lightness, stops });
   }
 
-  return upgrade(decodedPrefix, spectrums, columns, skeleton);
+  return upgrade(decodedPrefix, spectrums, columns, chromaless);
 }
 
 /**
@@ -320,7 +340,7 @@ function upgrade(
   prefix: string,
   previous: readonly PreviousSpectrum[],
   columns: readonly (readonly number[])[],
-  skeleton: readonly { lightness: number; stops: Record<string, Stop> }[],
+  chromaless: readonly ChromalessRow[],
 ): Palette {
   const profiles: ChromaProfile[] = [];
   /** The chroma column each minted profile stands for, by profile id. */
@@ -340,7 +360,7 @@ function upgrade(
     return { ...spectrum, profileId: profile.id };
   });
 
-  const rows = skeleton.map((row, index) => ({
+  const rows = chromaless.map((row, index) => ({
     lightness: row.lightness,
     chromas: Object.fromEntries(
       profiles.map((profile) => [

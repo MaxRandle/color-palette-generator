@@ -31,19 +31,23 @@ export type TileRow = {
 export function tileRowsOf(palette: Palette): TileRow[] {
   return socketsOf(palette).map((occupied) => ({
     socket: occupied.socket,
-    cells: palette.spectrums.map((spectrum) => cellAt(occupied, spectrum)),
+    cells: palette.spectrums.map((spectrum) => cellAt(palette, occupied, spectrum)),
   }));
 }
 
 /** One Spectrum's cells, one per Socket, in ladder order. */
 export function cellsOf(palette: Palette, spectrum: Spectrum): PaletteCell[] {
-  return socketsOf(palette).map((occupied) => cellAt(occupied, spectrum));
+  return socketsOf(palette).map((occupied) => cellAt(palette, occupied, spectrum));
 }
 
 /**
  * The one place a cell is made, so the grid and a single ramp are the same
  * Tiles read two ways round rather than two resolutions that could drift.
  */
-function cellAt({ socket, row }: OccupiedSocket, spectrum: Spectrum): PaletteCell {
-  return { socket, spectrum, color: resolve(row, spectrum) };
+function cellAt(
+  palette: Palette,
+  { socket, row }: OccupiedSocket,
+  spectrum: Spectrum,
+): PaletteCell {
+  return { socket, spectrum, color: resolve(palette, row, spectrum) };
 }

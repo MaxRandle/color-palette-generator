@@ -2,7 +2,7 @@ import type { Palette } from "./palette";
 
 /**
  * The Chroma profiles the tool opens with: the three a Palette is most likely
- * to want at once, per ADR-0005. Ordinary profiles, editable and removable like
+ * to want at once, per ADR-0006. Ordinary profiles, editable and removable like
  * any other — they are defaults, not built-ins.
  */
 const VIBRANT = { id: "p1", name: "vibrant" };

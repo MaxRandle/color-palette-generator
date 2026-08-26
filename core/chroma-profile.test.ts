@@ -26,6 +26,12 @@ describe("chromaProfileNameError", () => {
     );
   });
 
+  it("refuses a name another profile holds but for surrounding space", () => {
+    expect(chromaProfileNameError(profiles, "p1", " subtle ")).toBe(
+      "Another chroma profile is already called  subtle ",
+    );
+  });
+
   it("refuses an empty name", () => {
     expect(chromaProfileNameError(profiles, "p1", "  ")).toBe(
       "Chroma profile name cannot be empty",

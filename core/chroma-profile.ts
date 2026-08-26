@@ -1,5 +1,5 @@
 /**
- * A Chroma profile's name and its id, per ADR-0005. Unlike a Spectrum's name,
+ * A Chroma profile's name and its id, per ADR-0006. Unlike a Spectrum's name,
  * the name reaches no CSS: it is a caption on the control that picks a profile,
  * so it is free text and held only to being present and to being unique, which
  * is what the control needs to be trusted. The id is separate, minted once and
@@ -20,8 +20,10 @@ export function chromaProfileNameError(
   name: string,
 ): string | null {
   if (name.trim() === "") return "Chroma profile name cannot be empty";
+  // Compared as the picker shows them: two names differing only in surrounding
+  // space are one name to anyone reading the list they appear in.
   const clash = profiles.some(
-    (profile) => profile.id !== id && profile.name === name,
+    (profile) => profile.id !== id && profile.name.trim() === name.trim(),
   );
   if (clash) return `Another chroma profile is already called ${name}`;
   return null;

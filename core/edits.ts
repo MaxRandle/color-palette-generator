@@ -119,7 +119,7 @@ export function setLightness(palette: Palette, index: number, lightness: number)
 }
 
 /**
- * Sets one Chroma profile's Chroma at one Row, per ADR-0005: the value belongs
+ * Sets one Chroma profile's Chroma at one Row, per ADR-0006: the value belongs
  * to the profile, so every Spectrum reading that profile moves with it. The
  * Row is the one holding it, so the value travels with the Row when it is
  * dragged, exactly as its Lightness does.
@@ -323,7 +323,7 @@ export function renameChromaProfile(
 /**
  * Whether a Chroma profile can go. Removing one is never a local edit — every
  * Spectrum reading it changes color at once, from wherever the user happens to
- * be standing — so it is refused while more than one reads it, per ADR-0005.
+ * be standing — so it is refused while more than one reads it, per ADR-0006.
  * The last profile cannot go either: every Spectrum needs one to read.
  */
 export function canRemoveChromaProfile(palette: Palette, id: string): boolean {

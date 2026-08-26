@@ -79,7 +79,7 @@ const HANDLE_HINT = "row-reorder-hint";
  * of its position.
  *
  * The Chroma column edits a value the Active Spectrum shares with every other
- * Spectrum reading the same profile, per ADR-0005 — as the Lightness column
+ * Spectrum reading the same profile, per ADR-0006 — as the Lightness column
  * beside it has always been shared by every Spectrum at once. The column is
  * headed with the profile's name, and every field in it says the profile too,
  * so how far an edit reaches is stated rather than inferred.

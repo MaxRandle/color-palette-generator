@@ -54,6 +54,26 @@ A chroma value lives on the row, one per profile, rather than on the socket. Chr
 therefore travels with a row when it is dragged, exactly as lightness does, and adding or
 removing a row cannot desynchronise a profile's length from the ladder's.
 
+Removing a profile is never a local edit: every Spectrum reading it changes color
+at once, from wherever the user happens to be standing, and the values it held are
+not recoverable from what is left behind. It is therefore refused outright while
+more than one Spectrum reads it, rather than removing and reassigning the readers
+— the control says how many are using it instead of disappearing. The last profile
+cannot go either, since every Spectrum needs one to read. Removing a profile only
+one Spectrum reads moves that Spectrum to the first profile left, which is a
+visible change to the Spectrum in hand rather than to one out of sight.
+
+Choosing which profile a Spectrum reads and choosing which profile to edit are one
+control, because they are one act: the ladder shows the Active Spectrum's profile,
+so a profile is looked at by being assigned. The cost is that a profile no Spectrum
+reads can only be reached by assigning it to one, which recolors that Spectrum on
+the way in. The starter Palette ships three profiles and one Spectrum, so two such
+profiles exist from the first render; they are visible in the picker and cost
+nothing until chosen, but they cannot be deleted without a detour through a
+Spectrum. A second selection concept — a profile being edited independently of the
+Spectrum reading it — was rejected as the more expensive of the two, and remains
+the remedy if the detour bites.
+
 A profile has an id fixed at creation and a name shown on screen, kept separate for the
 reason ADR-0004 keeps a spectrum's apart: a spectrum's choice is held against the id, so
 renaming a profile touches nothing a spectrum points at and invalidates no shared code.

@@ -11,12 +11,25 @@ import {
   resolve,
 } from "./color";
 import { maxChroma } from "./gamut/max-chroma";
-import type { Row, Spectrum } from "./palette";
+import type { Palette, Row, Spectrum } from "./palette";
 
 const brand: Spectrum = { id: "brand", name: "brand", profileId: "p1" };
 
+/** A one-Spectrum Palette, which is all `resolve` reads a Palette for. */
+const palette: Palette = {
+  prefix: "color",
+  profiles: [{ id: "p1", name: "vibrant" }],
+  spectrums: [brand],
+  rows: [],
+};
+
 function row(lightness: number, chroma: number, hue: number): Row {
   return { lightness, chromas: { p1: chroma }, stops: { brand: { hue } } };
+}
+
+/** `resolve` against that Palette, which every case here shares. */
+function resolved(row: Row) {
+  return resolve(palette, row, brand);
 }
 
 describe("resolve", () => {
@@ -30,11 +43,11 @@ describe("resolve", () => {
     ["green", row(86.644, 0.29483, 142.495), "#00ff00"],
     ["blue", row(45.201, 0.31321, 264.052), "#0000ff"],
   ])("converts in-gamut %s to hex", (_name, input, hex) => {
-    expect(resolve(input, brand).hex).toBe(hex);
+    expect(resolved(input).hex).toBe(hex);
   });
 
   it("takes Lightness from the Row and Chroma and Hue from the Spectrum's Stop", () => {
-    expect(resolve(row(60, 0.1, 250), brand).authored).toEqual({
+    expect(resolved(row(60, 0.1, 250)).authored).toEqual({
       lightness: 60,
       chroma: 0.1,
       hue: 250,
@@ -42,9 +55,9 @@ describe("resolve", () => {
   });
 
   it("reports no fallback for a color already inside the sRGB region", () => {
-    const resolved = resolve(row(60, 0.1, 250), brand);
-    expect(resolved.fellBack).toBe(false);
-    expect(resolved.rendered).toEqual(resolved.authored);
+    const inside = resolved(row(60, 0.1, 250));
+    expect(inside.fellBack).toBe(false);
+    expect(inside.rendered).toEqual(inside.authored);
   });
 });
 
@@ -53,29 +66,29 @@ describe("Fallback", () => {
   const outOfGamut = row(60, authoredChroma, 250);
 
   it("reports that a color outside the sRGB region fell back", () => {
-    expect(resolve(outOfGamut, brand).fellBack).toBe(true);
+    expect(resolved(outOfGamut).fellBack).toBe(true);
   });
 
   it("holds Lightness and Hue and reduces only Chroma", () => {
-    const { authored, rendered } = resolve(outOfGamut, brand);
+    const { authored, rendered } = resolved(outOfGamut);
     expect(rendered.lightness).toBe(authored.lightness);
     expect(rendered.hue).toBe(authored.hue);
     expect(rendered.chroma).toBeLessThan(authored.chroma);
   });
 
   it("never overwrites the authored values", () => {
-    const { authored } = resolve(outOfGamut, brand);
+    const { authored } = resolved(outOfGamut);
     expect(authored).toEqual({ lightness: 60, chroma: authoredChroma, hue: 250 });
   });
 
   it("lands inside the sRGB region, keeping as much Chroma as it can", () => {
-    const { rendered } = resolve(outOfGamut, brand);
+    const { rendered } = resolved(outOfGamut);
     expect(isInSrgb(rendered)).toBe(true);
     expect(isInSrgb({ ...rendered, chroma: rendered.chroma + 0.005 })).toBe(false);
   });
 
   it("does not shift Hue the way RGB clipping would", () => {
-    const { rendered } = resolve(outOfGamut, brand);
+    const { rendered } = resolved(outOfGamut);
     const clipped = converter("oklch")(clampRgb(oklch({ mode: "oklch", l: 0.6, c: 0.35, h: 250 })));
     expect(clipped.h).not.toBeCloseTo(250, 1);
     expect(rendered.hue).toBeCloseTo(250, 10);
@@ -159,7 +172,7 @@ describe("fallbackFor", () => {
     ["white", row(100, CHROMA_MAX, 90), 255],
     ["black", row(0, CHROMA_MAX, 270), 0],
   ])("falls back to %s at the end of the axis", (_name, input, level) => {
-    const hex = resolve(input, brand).hex;
+    const hex = resolved(input).hex;
     const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
     // Within a few steps of #ffffff and #000000 rather than exactly them:
     // `isInSrgb` tolerates half a hex step, and near black Oklab's cube hides a

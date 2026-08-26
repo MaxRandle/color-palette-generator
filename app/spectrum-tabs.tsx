@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChromaProfileField } from "./chroma-profile-field";
-import { useDraft } from "./use-draft";
+import { NameField } from "./name-field";
 import {
   addSpectrum,
   canMoveSpectrum,
@@ -25,7 +25,6 @@ export function spectrumTabId(spectrumId: string): string {
 }
 
 const STRIP_LABEL = "spectrum-tabs-label";
-const NAME_ERROR = "spectrum-name-error";
 const REORDER_HINT = "spectrum-reorder-hint";
 
 const CONTROL =
@@ -80,36 +79,24 @@ export function SpectrumTabs({
   const spectrums = palette.spectrums;
   const spectrum = spectrums[active];
   const removable = canRemoveSpectrum(palette);
-  const draft = useDraft(spectrum.name);
-  const error = spectrumNameError(spectrums, spectrum.id, draft.text);
   const reorderable = canMoveSpectrum(palette);
   const strip = useRef<HTMLDivElement>(null);
-  const nameField = useRef<HTMLInputElement>(null);
-  /** Set by `add`, so the field is taken over once it is showing the new name. */
-  const naming = useRef(false);
+  /** The Spectrum this strip minted, whose name is waiting to be typed over. */
+  const [minted, setMinted] = useState<string | null>(null);
   /** The place the dragged tab currently sits at, or null while none is held. */
   const [dragging, setDragging] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
-  // After the render, not during `add`: the field is one input shared by every
-  // tab, so selecting its text before it has been retitled would select the
-  // name of the Spectrum that was copied and then lose the selection to the
-  // value change.
-  useEffect(() => {
-    if (!naming.current) return;
-    naming.current = false;
-    nameField.current?.focus();
-    nameField.current?.select();
-  });
-
   /**
    * Switching Spectrums drops whatever was half-typed in the name field: the
    * draft belongs to the Spectrum it was being typed for, and carrying it to
-   * the next one would show one Spectrum's name under another's tab.
+   * the next one would show one Spectrum's name under another's tab. The field
+   * is keyed by the Spectrum, so switching brings a fresh one; all that is left
+   * to drop here is the claim on a name minted earlier.
    */
   function activate(index: number): void {
     onActivate(index);
-    draft.reset();
+    setMinted(null);
   }
 
   /** Roving tabindex: only the Active tab is in the tab order, so focus is moved by hand. */
@@ -208,27 +195,17 @@ export function SpectrumTabs({
    * field takes focus with the minted name selected, ready to be typed over.
    */
   function add(): void {
-    onChange(addSpectrum(palette, spectrum.id));
+    const added = addSpectrum(palette, spectrum.id);
+    onChange(added);
     activate(spectrums.length);
-    naming.current = true;
+    setMinted(added.spectrums[added.spectrums.length - 1].id);
   }
 
   function remove(index: number): void {
     if (!removable) return;
     onActivate(activeSpectrumAfterRemoving(active, index));
     onChange(removeSpectrum(palette, index));
-    draft.reset();
-  }
-
-  /**
-   * Invalid input stays in the field while the user is editing, so they can see
-   * and fix what they typed, but never reaches the Palette: the core seam
-   * refuses a name that is not a CSS identifier or that another Spectrum
-   * already holds, and the field falls back to the last accepted name on blur.
-   */
-  function handleName(next: string): void {
-    draft.type(next);
-    onChange(renameSpectrum(palette, spectrum.id, next));
+    setMinted(null);
   }
 
   return (
@@ -328,47 +305,29 @@ export function SpectrumTabs({
         </p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="spectrum-name" className="text-sm font-medium">
-          Spectrum name
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            id="spectrum-name"
-            ref={nameField}
-            type="text"
-            value={draft.text}
-            onChange={(event) => handleName(event.target.value)}
-            onBlur={draft.reset}
-            aria-invalid={error !== null}
-            aria-describedby={error ? NAME_ERROR : undefined}
-            className="w-40 rounded-md border border-zinc-300 bg-transparent px-2 py-1.5 font-mono text-sm aria-invalid:border-red-500 dark:border-zinc-700"
-          />
-          {/* aria-disabled rather than disabled: the button stays focusable, so
-              the reason the last Spectrum cannot go is reachable by keyboard. */}
-          <button
-            type="button"
-            aria-disabled={!removable}
-            aria-label={
-              removable
-                ? `Remove spectrum ${spectrum.name}`
-                : `Remove spectrum ${spectrum.name} — unavailable, the last spectrum cannot be removed`
-            }
-            onClick={() => remove(active)}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-transparent dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          >
-            <span aria-hidden>&times;</span>
-          </button>
-        </div>
-        {/* Announced as it appears: the field is focused while the error changes. */}
-        <p
-          id={NAME_ERROR}
-          role="alert"
-          className="min-h-5 text-sm text-red-600 dark:text-red-400"
-        >
-          {error}
-        </p>
-      </div>
+      <NameField
+        /* Keyed by the Spectrum, so switching tabs brings a field showing the
+           Spectrum now Active rather than the last one's half-typed name. */
+        key={spectrum.id}
+        id="spectrum-name"
+        label="Spectrum name"
+        name={spectrum.name}
+        mono
+        claiming={minted === spectrum.id}
+        /* Invalid input stays in the field while the user is editing, so they
+           can see and fix what they typed, but never reaches the Palette: the
+           core seam refuses a name that is not a CSS identifier or that another
+           Spectrum already holds. */
+        errorFor={(name) => spectrumNameError(spectrums, spectrum.id, name)}
+        onRename={(name) => onChange(renameSpectrum(palette, spectrum.id, name))}
+        removable={removable}
+        removeLabel={
+          removable
+            ? `Remove spectrum ${spectrum.name}`
+            : `Remove spectrum ${spectrum.name} — unavailable, the last spectrum cannot be removed`
+        }
+        onRemove={() => remove(active)}
+      />
 
       <ChromaProfileField
         palette={palette}

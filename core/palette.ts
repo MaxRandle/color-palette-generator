@@ -1,5 +1,5 @@
 /**
- * The palette model, per ADR-0001 and ADR-0005: a Row owns its Lightness and
+ * The palette model, per ADR-0001 and ADR-0006: a Row owns its Lightness and
  * one Chroma per Chroma profile; a Spectrum contributes only Hue, and the
  * Chroma profile it reads.
  */
@@ -73,21 +73,31 @@ export function socketsOf(palette: Palette): OccupiedSocket[] {
 }
 
 /**
- * The Chroma a Spectrum has at a Row: the Row's own value under whichever
- * Chroma profile the Spectrum reads. The one place the indirection is spelled
- * out, so nothing else has to know a Spectrum holds a profile rather than a
- * Chroma.
+ * The Chroma profile a Spectrum reads. Every Spectrum reads one the Palette
+ * holds — a code naming a profile that is not there is refused, and no edit can
+ * leave one behind — so the fall back to the first profile is what a Palette
+ * that should not exist renders as, rather than a case with meaning.
  */
-export function chromaOf(row: Row, spectrum: Spectrum): number {
-  return row.chromas[spectrum.profileId];
-}
-
-/** The Chroma profile a Spectrum reads. */
 export function profileOf(palette: Palette, spectrum: Spectrum): ChromaProfile {
   return (
     palette.profiles.find((profile) => profile.id === spectrum.profileId) ??
     palette.profiles[0]
   );
+}
+
+/**
+ * The Chroma a Spectrum has at a Row: the Row's own value under whichever
+ * Chroma profile the Spectrum reads. The one place the indirection is spelled
+ * out, so nothing else has to know a Spectrum holds a profile rather than a
+ * Chroma — and it reads the profile through `profileOf`, so the value and the
+ * name the ladder heads its column with can never come from different profiles.
+ */
+export function chromaOf(
+  palette: Palette,
+  row: Row,
+  spectrum: Spectrum,
+): number {
+  return row.chromas[profileOf(palette, spectrum).id];
 }
 
 /** The Spectrums reading one Chroma profile. Deleting is refused while it is more than one. */

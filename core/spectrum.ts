@@ -15,7 +15,7 @@ import type { Spectrum } from "./palette";
  * merely unchanged passes.
  */
 export function spectrumNameError(
-  spectrums: readonly Spectrum[],
+  spectrums: readonly Pick<Spectrum, "id" | "name">[],
   id: string,
   name: string,
 ): string | null {

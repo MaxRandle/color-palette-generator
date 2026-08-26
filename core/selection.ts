@@ -116,7 +116,7 @@ export function readingAt(palette: Palette, selection: Selection): Reading {
     socket,
     color: {
       lightness: row.lightness,
-      chroma: chromaOf(row, spectrum),
+      chroma: chromaOf(palette, row, spectrum),
       hue: row.stops[spectrum.id].hue,
     },
   };
