@@ -35,12 +35,17 @@ export function spectrumNameError(
  * an id and a name. Numbering starts at two because the Palette a Spectrum is
  * added to already has a first one.
  *
+ * The Chroma profile is not minted here: a new Spectrum reads whichever profile
+ * the one it copies reads, so the caller supplies it.
+ *
  * Id and name start out identical, as the starter Palette's do. The name is the
  * only thing distinguishing a new Spectrum from the one it copies, so it is
  * what the user is sent to type; the id it happens to match never changes with
  * it. Ids are unique only within one Palette and mean nothing outside it.
  */
-export function mintSpectrum(spectrums: readonly Spectrum[]): Spectrum {
+export function mintSpectrum(
+  spectrums: readonly Spectrum[],
+): Pick<Spectrum, "id" | "name"> {
   const taken = new Set(
     spectrums.flatMap((spectrum) => [spectrum.id, spectrum.name]),
   );

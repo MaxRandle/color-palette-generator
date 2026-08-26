@@ -12,7 +12,6 @@ import {
   removeRow,
   removeSpectrum,
   renameSpectrum,
-  setChroma,
   setHue,
   setLightness,
   setPrefix,
@@ -20,14 +19,15 @@ import {
 } from "./edits";
 import { socketsOf, type Palette } from "./palette";
 
-const brand = { id: "brand", name: "brand" };
+const brand = { id: "brand", name: "brand", profileId: "p1" };
 
 const palette: Palette = {
   prefix: "color",
+  profiles: [{ id: "p1", name: "vibrant" }],
   spectrums: [brand],
   rows: [
-    { lightness: 95, stops: { brand: { chroma: 0.02, hue: 264 } } },
-    { lightness: 60, stops: { brand: { chroma: 0.2, hue: 264 } } },
+    { lightness: 95, chromas: { p1: 0.02 }, stops: { brand: { hue: 264 } } },
+    { lightness: 60, chromas: { p1: 0.2 }, stops: { brand: { hue: 264 } } },
   ],
 };
 
@@ -39,7 +39,11 @@ describe("addRow", () => {
 
   it("pre-populates the new Row with the last Row's values", () => {
     const rows = addRow(palette).rows;
-    expect(rows[2]).toEqual({ lightness: 60, stops: { brand: { chroma: 0.2, hue: 264 } } });
+    expect(rows[2]).toEqual({
+      lightness: 60,
+      chromas: { p1: 0.2 },
+      stops: { brand: { hue: 264 } },
+    });
   });
 
   it("keeps Socket numbers contiguous", () => {
@@ -85,27 +89,9 @@ describe("setLightness", () => {
   });
 });
 
-describe("setChroma", () => {
-  it("replaces one Spectrum's Chroma at one Row", () => {
-    const edited = setChroma(palette, 0, "brand", 0.31);
-    expect(edited.rows[0].stops.brand).toEqual({ chroma: 0.31, hue: 264 });
-    expect(edited.rows[1]).toEqual(palette.rows[1]);
-  });
-
-  it("permits Chroma beyond the sRGB region, up to 0.5", () => {
-    expect(setChroma(palette, 0, "brand", 0.5).rows[0].stops.brand.chroma).toBe(0.5);
-  });
-
-  it("holds Chroma inside the 0 to 0.5 range", () => {
-    expect(setChroma(palette, 0, "brand", 0.9).rows[0].stops.brand.chroma).toBe(0.5);
-    expect(setChroma(palette, 0, "brand", -0.2).rows[0].stops.brand.chroma).toBe(0);
-  });
-});
-
 describe("setHue", () => {
   it("replaces one Spectrum's Hue at one Row", () => {
     expect(setHue(palette, 0, "brand", 120).rows[0].stops.brand).toEqual({
-      chroma: 0.02,
       hue: 120,
     });
   });
@@ -139,9 +125,9 @@ describe("moveRow", () => {
   const three: Palette = {
     ...palette,
     rows: [
-      { lightness: 95, stops: { brand: { chroma: 0.02, hue: 264 } } },
-      { lightness: 60, stops: { brand: { chroma: 0.2, hue: 264 } } },
-      { lightness: 20, stops: { brand: { chroma: 0.11, hue: 264 } } },
+      { lightness: 95, chromas: { p1: 0.02 }, stops: { brand: { hue: 264 } } },
+      { lightness: 60, chromas: { p1: 0.2 }, stops: { brand: { hue: 264 } } },
+      { lightness: 20, chromas: { p1: 0.11 }, stops: { brand: { hue: 264 } } },
     ],
   };
 
@@ -157,7 +143,8 @@ describe("moveRow", () => {
     // ADR-0001: a Row is its Lightness plus every Spectrum's Stop, moving as one.
     const moved = moveRow(three, 0, 2);
     expect(moved.rows[2].lightness).toBe(95);
-    expect(moved.rows[2].stops.brand).toEqual({ chroma: 0.02, hue: 264 });
+    expect(moved.rows[2].chromas).toEqual({ p1: 0.02 });
+    expect(moved.rows[2].stops.brand).toEqual({ hue: 264 });
   });
 
   it("keeps Socket numbers contiguous and in order", () => {
@@ -213,9 +200,13 @@ describe("addSpectrum", () => {
 
   it("copies the Spectrum it was added from at every Row", () => {
     expect(two.rows.map((row) => row.stops.s2)).toEqual([
-      { chroma: 0.02, hue: 264 },
-      { chroma: 0.2, hue: 264 },
+      { hue: 264 },
+      { hue: 264 },
     ]);
+  });
+
+  it("reads the same Chroma profile as the Spectrum it copies", () => {
+    expect(two.spectrums[1].profileId).toBe("p1");
   });
 
   it("leaves the Stops it copied untouched", () => {
@@ -225,9 +216,13 @@ describe("addSpectrum", () => {
   });
 
   it("copies whichever Spectrum it was told to, not the first", () => {
-    const accented = renameSpectrum(two, "s2", "accent");
-    const three = addSpectrum(setChroma(accented, 0, "s2", 0.3), "s2");
-    expect(three.rows[0].stops.s3).toEqual({ chroma: 0.3, hue: 264 });
+    const accented = setHue(renameSpectrum(two, "s2", "accent"), 0, "s2", 30);
+    const three = addSpectrum(accented, "s2");
+    expect(three.rows[0].stops.s3).toEqual({ hue: 30 });
+  });
+
+  it("ignores a Spectrum the Palette does not hold", () => {
+    expect(addSpectrum(palette, "nope")).toBe(palette);
   });
 });
 
@@ -236,7 +231,11 @@ describe("renameSpectrum", () => {
 
   it("renames the Spectrum without touching a single Stop", () => {
     const renamed = renameSpectrum(two, "s2", "accent");
-    expect(renamed.spectrums[1]).toEqual({ id: "s2", name: "accent" });
+    expect(renamed.spectrums[1]).toEqual({
+      id: "s2",
+      name: "accent",
+      profileId: "p1",
+    });
     expect(renamed.rows).toEqual(two.rows);
   });
 
@@ -257,8 +256,8 @@ describe("removeSpectrum", () => {
     const left = removeSpectrum(two, 0);
     expect(left.spectrums.map((spectrum) => spectrum.id)).toEqual(["s2"]);
     expect(left.rows.map((row) => row.stops)).toEqual([
-      { s2: { chroma: 0.02, hue: 264 } },
-      { s2: { chroma: 0.2, hue: 264 } },
+      { s2: { hue: 264 } },
+      { s2: { hue: 264 } },
     ]);
   });
 

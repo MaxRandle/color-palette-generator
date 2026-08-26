@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChromaProfileField } from "./chroma-profile-field";
 import { useDraft } from "./use-draft";
 import {
   addSpectrum,
@@ -368,6 +369,12 @@ export function SpectrumTabs({
           {error}
         </p>
       </div>
+
+      <ChromaProfileField
+        palette={palette}
+        onChange={onChange}
+        spectrum={spectrum}
+      />
     </div>
   );
 }

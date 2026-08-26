@@ -3,22 +3,27 @@ import { encodePalette } from "./palette-code";
 import { pastedPalette, restoredPalette } from "./restore";
 import type { Palette } from "./palette";
 
+const vibrant = { id: "p1", name: "vibrant" };
+
 const starter: Palette = {
   prefix: "color",
-  spectrums: [{ id: "brand", name: "brand" }],
-  rows: [{ lightness: 95, stops: { brand: { chroma: 0.02, hue: 264 } } }],
+  profiles: [vibrant],
+  spectrums: [{ id: "brand", name: "brand", profileId: "p1" }],
+  rows: [{ lightness: 95, chromas: { p1: 0.02 }, stops: { brand: { hue: 264 } } }],
 };
 
 const shared: Palette = {
   prefix: "shared",
-  spectrums: [{ id: "warm", name: "warm-grey" }],
-  rows: [{ lightness: 40, stops: { warm: { chroma: 0.18, hue: 120 } } }],
+  profiles: [vibrant],
+  spectrums: [{ id: "warm", name: "warm-grey", profileId: "p1" }],
+  rows: [{ lightness: 40, chromas: { p1: 0.18 }, stops: { warm: { hue: 120 } } }],
 };
 
 const stored: Palette = {
   prefix: "mine",
-  spectrums: [{ id: "brand", name: "brand" }],
-  rows: [{ lightness: 20, stops: { brand: { chroma: 0.1, hue: 30 } } }],
+  profiles: [vibrant],
+  spectrums: [{ id: "brand", name: "brand", profileId: "p1" }],
+  rows: [{ lightness: 20, chromas: { p1: 0.1 }, stops: { brand: { hue: 30 } } }],
 };
 
 describe("restoredPalette", () => {

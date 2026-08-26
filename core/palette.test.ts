@@ -2,15 +2,16 @@ import { describe, expect, it } from "vitest";
 import { socketsOf } from "./palette";
 import type { Palette } from "./palette";
 
-const spectrum = { id: "s", name: "brand" };
+const spectrum = { id: "s", name: "brand", profileId: "p1" };
 
 const palette: Palette = {
   prefix: "color",
+  profiles: [{ id: "p1", name: "vibrant" }],
   spectrums: [spectrum],
   rows: [
-    { lightness: 95, stops: { s: { chroma: 0.02, hue: 250 } } },
-    { lightness: 60, stops: { s: { chroma: 0.15, hue: 250 } } },
-    { lightness: 20, stops: { s: { chroma: 0.08, hue: 250 } } },
+    { lightness: 95, chromas: { p1: 0.02 }, stops: { s: { hue: 250 } } },
+    { lightness: 60, chromas: { p1: 0.15 }, stops: { s: { hue: 250 } } },
+    { lightness: 20, chromas: { p1: 0.08 }, stops: { s: { hue: 250 } } },
   ],
 };
 

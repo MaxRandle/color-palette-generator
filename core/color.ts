@@ -1,5 +1,5 @@
 import { converter, formatHex, type Oklch } from "culori";
-import type { Row, Spectrum } from "./palette";
+import { chromaOf, type Row, type Spectrum } from "./palette";
 
 /**
  * A color in the authoring space. Lightness is a percentage (0–100), Chroma is
@@ -154,13 +154,16 @@ export function fallbackFor(color: OklchColor): OklchColor {
   return pulledInto(color, "srgb");
 }
 
-/** Resolve one Spectrum's Stop at one Row into a color ready to render and export. */
+/**
+ * Resolve one Spectrum's Stop at one Row into a color ready to render and
+ * export. Three sources meet here and nowhere else: the Row's Lightness, the
+ * Chroma its Spectrum's Chroma profile gives at that Row, and the Stop's Hue.
+ */
 export function resolve(row: Row, spectrum: Spectrum): ResolvedColor {
-  const stop = row.stops[spectrum.id];
   const authored: OklchColor = {
     lightness: row.lightness,
-    chroma: stop.chroma,
-    hue: stop.hue,
+    chroma: chromaOf(row, spectrum),
+    hue: row.stops[spectrum.id].hue,
   };
   const fellBack = !isInSrgb(authored);
   const rendered = fellBack ? fallbackFor(authored) : authored;

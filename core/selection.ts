@@ -9,7 +9,13 @@
  */
 
 import type { OklchColor } from "./color";
-import { socketsOf, type Palette, type Socket, type Spectrum } from "./palette";
+import {
+  chromaOf,
+  socketsOf,
+  type Palette,
+  type Socket,
+  type Spectrum,
+} from "./palette";
 
 /** The selected Row and the Active Spectrum, each by its index. */
 export type Selection = {
@@ -105,10 +111,14 @@ export function activeSpectrumAfterRemoving(
 /** What the selected Row reads as: its Socket, and the color it authors. */
 export function readingAt(palette: Palette, selection: Selection): Reading {
   const { socket, row } = socketsOf(palette)[selectedRowIndex(palette, selection)];
-  const stop = row.stops[activeSpectrum(palette, selection).id];
+  const spectrum = activeSpectrum(palette, selection);
   return {
     socket,
-    color: { lightness: row.lightness, chroma: stop.chroma, hue: stop.hue },
+    color: {
+      lightness: row.lightness,
+      chroma: chromaOf(row, spectrum),
+      hue: row.stops[spectrum.id].hue,
+    },
   };
 }
 

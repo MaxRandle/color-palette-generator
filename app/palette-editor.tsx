@@ -17,7 +17,7 @@ import {
   selectedRowIndex,
 } from "@/core/selection";
 import { usePersistedPalette } from "./use-persisted-palette";
-import type { Palette } from "@/core/palette";
+import { profileOf, type Palette } from "@/core/palette";
 import type { Selection } from "@/core/selection";
 
 /** The ladder is the tab strip's panel: one Spectrum is edited at a time. */
@@ -55,6 +55,7 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
   const selectedRow = selectedRowIndex(palette, selection);
   const active = activeSpectrumIndex(palette, selection);
   const spectrum = activeSpectrum(palette, selection);
+  const profile = profileOf(palette, spectrum);
   const reading = readingAt(palette, selection);
 
   // Each is set against the other's settled value, which is what retires a
@@ -116,6 +117,7 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
               <RowLadder
                 palette={palette}
                 spectrum={spectrum}
+                profile={profile}
                 onChange={setPalette}
                 selected={selectedRow}
                 onSelect={selectRow}

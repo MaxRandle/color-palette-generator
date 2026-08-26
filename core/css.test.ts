@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 import { formatCss } from "./css";
 import type { Palette, Row } from "./palette";
 
-const brand = { id: "brand", name: "brand" };
-const accent = { id: "accent", name: "accent" };
+const brand = { id: "brand", name: "brand", profileId: "p1" };
+const accent = { id: "accent", name: "accent", profileId: "p1" };
 
 function row(lightness: number, chroma: number, hue: number): Row {
-  return { lightness, stops: { brand: { chroma, hue }, accent: { chroma, hue } } };
+  return {
+    lightness,
+    chromas: { p1: chroma },
+    stops: { brand: { hue }, accent: { hue } },
+  };
 }
 
 const palette: Palette = {
   prefix: "color",
+  profiles: [{ id: "p1", name: "vibrant" }],
   spectrums: [brand],
   rows: [row(100, 0, 0), row(62.796, 0.25768, 29.234), row(0, 0, 0)],
 };

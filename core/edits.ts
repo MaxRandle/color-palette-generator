@@ -6,8 +6,9 @@
 
 import { CHROMA_MAX, FULL_TURN, LIGHTNESS_MAX } from "./color";
 import { prefixError } from "./prefix";
+import { chromaProfileNameError, mintChromaProfile } from "./chroma-profile";
 import { mintSpectrum, spectrumNameError } from "./spectrum";
-import type { Palette, Row, Stop } from "./palette";
+import { spectrumsUsing, type Palette, type Row, type Stop } from "./palette";
 
 /**
  * A new Row starts as a copy of the last one: a ramp is authored by nudging a
@@ -117,16 +118,21 @@ export function setLightness(palette: Palette, index: number, lightness: number)
   }));
 }
 
-/** Sets one Spectrum's Chroma at one Row. */
+/**
+ * Sets one Chroma profile's Chroma at one Row, per ADR-0005: the value belongs
+ * to the profile, so every Spectrum reading that profile moves with it. The
+ * Row is the one holding it, so the value travels with the Row when it is
+ * dragged, exactly as its Lightness does.
+ */
 export function setChroma(
   palette: Palette,
   index: number,
-  spectrumId: string,
+  profileId: string,
   chroma: number,
 ): Palette {
-  return replaceStop(palette, index, spectrumId, (stop) => ({
-    ...stop,
-    chroma: within(chroma, CHROMA_MAX),
+  return replaceRow(palette, index, (row) => ({
+    ...row,
+    chromas: { ...row.chromas, [profileId]: within(chroma, CHROMA_MAX) },
   }));
 }
 
@@ -153,7 +159,9 @@ export function setHue(
  * replaces a Stop instead of mutating it.
  */
 export function addSpectrum(palette: Palette, copyOfId: string): Palette {
-  const minted = mintSpectrum(palette.spectrums);
+  const copied = palette.spectrums.find((each) => each.id === copyOfId);
+  if (copied === undefined) return palette;
+  const minted = { ...mintSpectrum(palette.spectrums), profileId: copied.profileId };
   return {
     ...palette,
     spectrums: [...palette.spectrums, minted],
@@ -245,4 +253,105 @@ export function moveSpectrum(palette: Palette, from: number, to: number): Palett
 export function setPrefix(palette: Palette, prefix: string): Palette {
   if (prefixError(prefix) !== null) return palette;
   return { ...palette, prefix };
+}
+
+/**
+ * Points a Spectrum at another Chroma profile. Not a single authored value
+ * moves: the Chromas stay on the Rows where they were, and the Spectrum simply
+ * starts reading a different column of them.
+ */
+export function setSpectrumProfile(
+  palette: Palette,
+  spectrumId: string,
+  profileId: string,
+): Palette {
+  if (!palette.profiles.some((profile) => profile.id === profileId)) {
+    return palette;
+  }
+  return {
+    ...palette,
+    spectrums: palette.spectrums.map((spectrum) =>
+      spectrum.id === spectrumId ? { ...spectrum, profileId } : spectrum,
+    ),
+  };
+}
+
+/**
+ * Adds a Chroma profile for one Spectrum, copying the profile that Spectrum is
+ * already reading and pointing it at the copy. Creation is therefore invisible:
+ * nothing on screen changes color, and the Spectrum is merely alone with its
+ * values, ready to be tuned away from the ones it left.
+ */
+export function addChromaProfile(palette: Palette, spectrumId: string): Palette {
+  const spectrum = palette.spectrums.find((each) => each.id === spectrumId);
+  if (spectrum === undefined) return palette;
+  const minted = mintChromaProfile(palette.profiles);
+  const copied = spectrum.profileId;
+  return setSpectrumProfile(
+    {
+      ...palette,
+      profiles: [...palette.profiles, minted],
+      rows: palette.rows.map((row) => ({
+        ...row,
+        chromas: { ...row.chromas, [minted.id]: row.chromas[copied] },
+      })),
+    },
+    spectrumId,
+    minted.id,
+  );
+}
+
+/**
+ * Renames a Chroma profile, ignoring a name no profile may hold. The id is
+ * untouched, so every Row's Chromas stay where they are, every Spectrum keeps
+ * reading the profile it chose, and a Palette code already shared stays valid.
+ */
+export function renameChromaProfile(
+  palette: Palette,
+  id: string,
+  name: string,
+): Palette {
+  if (chromaProfileNameError(palette.profiles, id, name) !== null) return palette;
+  return {
+    ...palette,
+    profiles: palette.profiles.map((profile) =>
+      profile.id === id ? { ...profile, name } : profile,
+    ),
+  };
+}
+
+/**
+ * Whether a Chroma profile can go. Removing one is never a local edit — every
+ * Spectrum reading it changes color at once, from wherever the user happens to
+ * be standing — so it is refused while more than one reads it, per ADR-0005.
+ * The last profile cannot go either: every Spectrum needs one to read.
+ */
+export function canRemoveChromaProfile(palette: Palette, id: string): boolean {
+  return (
+    palette.profiles.length > 1 && spectrumsUsing(palette, id).length <= 1
+  );
+}
+
+/**
+ * Removes a Chroma profile, and with it the Chroma every Row held against it.
+ * The one Spectrum that may have been reading it moves to the first profile
+ * left, which is a visible change to the Spectrum in hand rather than to one
+ * out of sight: `canRemoveChromaProfile` is what keeps it that way.
+ */
+export function removeChromaProfile(palette: Palette, id: string): Palette {
+  if (!canRemoveChromaProfile(palette, id)) return palette;
+  const profiles = palette.profiles.filter((profile) => profile.id !== id);
+  const fallback = profiles[0].id;
+  return {
+    ...palette,
+    profiles,
+    spectrums: palette.spectrums.map((spectrum) =>
+      spectrum.profileId === id ? { ...spectrum, profileId: fallback } : spectrum,
+    ),
+    rows: palette.rows.map((row) => {
+      const chromas = { ...row.chromas };
+      delete chromas[id];
+      return { ...row, chromas };
+    }),
+  };
 }

@@ -15,7 +15,12 @@ import {
   setHue,
   setLightness,
 } from "@/core/edits";
-import { socketsOf, type Palette, type Spectrum } from "@/core/palette";
+import {
+  socketsOf,
+  type ChromaProfile,
+  type Palette,
+  type Spectrum,
+} from "@/core/palette";
 import {
   selectedRowAfterMoving,
   selectedRowAfterRemoving,
@@ -25,6 +30,8 @@ type RowLadderProps = {
   palette: Palette;
   /** The Active Spectrum, whose Stop each Row edits. */
   spectrum: Spectrum;
+  /** The Chroma profile that Spectrum reads, which the Chroma column edits. */
+  profile: ChromaProfile;
   onChange: (palette: Palette) => void;
   /** The Row the Cross-section is following, by its index in the ladder. */
   selected: number;
@@ -66,9 +73,16 @@ const COLUMNS =
 const HANDLE_HINT = "row-reorder-hint";
 
 /**
- * The ladder of Rows, one per Socket: the Row's own Lightness plus the Active
- * Spectrum's Chroma and Hue. Adding, removing and reordering all renumber the
- * Sockets, because a Socket's number is a property of its position.
+ * The ladder of Rows, one per Socket: the Row's own Lightness, the Chroma its
+ * Chroma profile gives, and the Active Spectrum's Hue. Adding, removing and
+ * reordering all renumber the Sockets, because a Socket's number is a property
+ * of its position.
+ *
+ * The Chroma column edits a value the Active Spectrum shares with every other
+ * Spectrum reading the same profile, per ADR-0005 — as the Lightness column
+ * beside it has always been shared by every Spectrum at once. The column is
+ * headed with the profile's name, and every field in it says the profile too,
+ * so how far an edit reaches is stated rather than inferred.
  *
  * A Row is dragged as a whole, per ADR-0001 — never a single Spectrum's Stop,
  * which is what would break the shared ladder. Reordering redefines what every
@@ -79,6 +93,7 @@ const HANDLE_HINT = "row-reorder-hint";
 export function RowLadder({
   palette,
   spectrum,
+  profile,
   onChange,
   selected,
   onSelect,
@@ -133,7 +148,7 @@ export function RowLadder({
         <span />
         <span>Shade</span>
         <span>Lightness</span>
-        <span>Chroma</span>
+        <span>Chroma &middot; {profile.name}</span>
         <span>Hue</span>
       </div>
 
@@ -239,13 +254,13 @@ export function RowLadder({
                 }
               />
               <NumberField
-                label={`Chroma ${at}`}
-                value={stop.chroma}
+                label={`Chroma ${at} in profile ${profile.name}`}
+                value={row.chromas[profile.id]}
                 min={0}
                 max={CHROMA_MAX}
                 step={CHROMA_STEP}
                 onCommit={(chroma) =>
-                  onChange(setChroma(palette, index, spectrum.id, chroma))
+                  onChange(setChroma(palette, index, profile.id, chroma))
                 }
               />
               {/* No min or max: Hue is an angle, so out-of-range input wraps. */}

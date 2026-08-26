@@ -7,15 +7,17 @@ import {
 } from "./lightness-scale";
 import type { Palette } from "./palette";
 
-const SPECTRUM = { id: "brand", name: "brand" };
+const SPECTRUM = { id: "brand", name: "brand", profileId: "p1" };
 
 function ladder(...lightnesses: number[]): Palette {
   return {
     prefix: "color",
+    profiles: [{ id: "p1", name: "vibrant" }],
     spectrums: [SPECTRUM],
     rows: lightnesses.map((lightness) => ({
       lightness,
-      stops: { brand: { chroma: 0.1, hue: 264 } },
+      chromas: { p1: 0.1 },
+      stops: { brand: { hue: 264 } },
     })),
   };
 }

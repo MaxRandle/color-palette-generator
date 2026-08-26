@@ -63,7 +63,7 @@ reference illuminant. This project's definition of the Visible gamut.
 _Avoid_: MacAdam limits, object color solid
 
 **Fallback**:
-The color obtained by reducing a Stop's Chroma, holding Lightness and Hue fixed, until it
+The color obtained by reducing a color's Chroma, holding Lightness and Hue fixed, until it
 lands inside the sRGB region. Always *derived* for rendering and export: the authored
 Oklch values are the source of truth and are never overwritten by their Fallback. The
 target is sRGB because the output is hex, not because of the user's display.
@@ -73,7 +73,7 @@ _Avoid_: Clipping, clamping (RGB clipping shifts Hue and is never what this proj
 
 **Palette**:
 The whole document the user is building: a naming prefix, an ordered ladder of Rows
-sitting in numbered Sockets, and one or more Spectrums.
+sitting in numbered Sockets, one or more Chroma profiles, and one or more Spectrums.
 
 **Socket**:
 A numbered position in the palette's ladder. Its number counts up in multiples of 100 from
@@ -90,22 +90,37 @@ position in a ladder. Code says Socket; labels, readouts and announcements say S
 _Avoid_: Socket (in any user-facing string), step, level, tone
 
 **Row**:
-The unit that occupies a Socket: one Lightness, plus one Stop per Spectrum. Rows are what
-the user drags; a Row moving to another Socket takes that Socket's number. Because a Row
-spans every Spectrum, dragging one rearranges all Spectrums together and the shared ladder
-survives. Equal Socket number means equal perceived Lightness across every Spectrum.
+The unit that occupies a Socket: one Lightness, one Chroma per Chroma profile, plus one
+Stop per Spectrum. Rows are what the user drags; a Row moving to another Socket takes that
+Socket's number, and takes its Lightness and its Chromas with it. Because a Row spans every
+Spectrum, dragging one rearranges all Spectrums together and the shared ladder survives.
+Equal Socket number means equal perceived Lightness across every Spectrum, and equal Chroma
+across every Spectrum reading the same Chroma profile.
 _Avoid_: Shade, step, rung, level, tone (a Row is what *occupies* a Shade, not the Shade
 itself; a "shade number" is the Socket's number)
 
 **Spectrum**:
-One named ramp of colors across every Socket. Contributes only Chroma and Hue — never
-Lightness. A Palette holds one or more, in the order they were created; order carries no
-meaning beyond the order they are read in.
+One named ramp of colors across every Socket. Contributes only Hue, and the Chroma profile
+it reads — never Lightness, and never a Chroma of its own. A Palette holds one or more, in
+the order they were created; order carries no meaning beyond the order they are read in.
 _Avoid_: Ramp, scale, palette (a Palette contains Spectrums), color (said of a whole
 Spectrum: the prefix is already `color` by default, so a Spectrum called a Color would put
 the word twice in one property name meaning two different things — and "color" is the right
 word for what a single Tile shows, one Spectrum at one Socket). Unlike Socket, Spectrum is
 the word the user is shown too: tabs, headings and announcements all say Spectrum.
+
+**Stop**:
+One Spectrum's contribution at one Row: a Hue, and nothing else. What the Stop is worth as
+a color needs the Row's Lightness and the Chroma its Spectrum's Chroma profile gives at
+that Row, so a Stop is never a color on its own.
+_Avoid_: Cell, swatch, Tile (a Tile is what a Stop *looks like* once resolved), color
+
+**Chroma profile**:
+A named Chroma per Row, which any number of Spectrums may read. Several exist so one
+Palette can hold vibrant colors, subtle accents and a neutral grayscale at once; a Spectrum
+belongs to exactly one. Its name is a caption and nothing more — free text, unique within
+the Palette, and never part of the CSS output, unlike a Spectrum name.
+_Avoid_: Chroma sequence, chroma track, chroma scale, saturation preset
 
 **Spectrum name**:
 What a Spectrum is called, both on screen and in the CSS it emits: the Spectrum named

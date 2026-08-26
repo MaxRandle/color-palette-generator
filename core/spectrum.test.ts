@@ -4,14 +4,19 @@ import type { Palette } from "./palette";
 
 const palette: Palette = {
   prefix: "color",
+  profiles: [
+    { id: "p1", name: "vibrant" },
+    { id: "p2", name: "subtle" },
+  ],
   spectrums: [
-    { id: "brand", name: "brand" },
-    { id: "s2", name: "accent" },
+    { id: "brand", name: "brand", profileId: "p1" },
+    { id: "s2", name: "accent", profileId: "p2" },
   ],
   rows: [
     {
       lightness: 60,
-      stops: { brand: { chroma: 0.2, hue: 264 }, s2: { chroma: 0.1, hue: 30 } },
+      chromas: { p1: 0.2, p2: 0.1 },
+      stops: { brand: { hue: 264 }, s2: { hue: 30 } },
     },
   ],
 };
@@ -60,7 +65,9 @@ describe("mintSpectrum", () => {
   });
 
   it("skips a number another Spectrum holds as a name, so the name is free too", () => {
-    expect(mintSpectrum([{ id: "brand", name: "s2" }])).toEqual({
+    expect(
+      mintSpectrum([{ id: "brand", name: "s2", profileId: "p1" }]),
+    ).toEqual({
       id: "s3",
       name: "s3",
     });

@@ -13,10 +13,10 @@ import {
 import { maxChroma } from "./gamut/max-chroma";
 import type { Row, Spectrum } from "./palette";
 
-const brand: Spectrum = { id: "brand", name: "brand" };
+const brand: Spectrum = { id: "brand", name: "brand", profileId: "p1" };
 
 function row(lightness: number, chroma: number, hue: number): Row {
-  return { lightness, stops: { brand: { chroma, hue } } };
+  return { lightness, chromas: { p1: chroma }, stops: { brand: { hue } } };
 }
 
 describe("resolve", () => {
