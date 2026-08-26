@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeSpectrum,
+  activeSpectrumAfterMoving,
   activeSpectrumAfterRemoving,
   activeSpectrumIndex,
   heldSelection,
@@ -116,6 +117,23 @@ describe("activeSpectrumAfterRemoving", () => {
 
   it("lands on whichever slides into its place when the Active one goes", () => {
     expect(activeSpectrumAfterRemoving(1, 1)).toBe(1);
+  });
+});
+
+describe("activeSpectrumAfterMoving", () => {
+  it("stays on the Spectrum the user was editing when it is the one dragged", () => {
+    expect(activeSpectrumAfterMoving(0, 0, 2)).toBe(2);
+    expect(activeSpectrumAfterMoving(2, 2, 0)).toBe(0);
+  });
+
+  it("shifts by the one place a Spectrum dragged past it displaced it", () => {
+    expect(activeSpectrumAfterMoving(2, 0, 3)).toBe(1);
+    expect(activeSpectrumAfterMoving(1, 3, 0)).toBe(2);
+  });
+
+  it("leaves the Active Spectrum alone when the move happens clear of it", () => {
+    expect(activeSpectrumAfterMoving(0, 1, 2)).toBe(0);
+    expect(activeSpectrumAfterMoving(3, 0, 1)).toBe(3);
   });
 });
 

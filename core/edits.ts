@@ -69,11 +69,25 @@ export function destinationIndex(palette: Palette, to: number): number {
  */
 export function moveRow(palette: Palette, from: number, to: number): Palette {
   const destination = destinationIndex(palette, to);
-  if (from < 0 || from >= palette.rows.length || destination === from) return palette;
-  const rows = [...palette.rows];
-  const [moved] = rows.splice(from, 1);
-  rows.splice(destination, 0, moved);
-  return { ...palette, rows };
+  if (!reaches(palette.rows, from, destination)) return palette;
+  return { ...palette, rows: reordered(palette.rows, from, destination) };
+}
+
+/**
+ * Whether a move is one the list can make: a real starting index, and somewhere
+ * other than where the item already stands. Shared by the two reorders, so a
+ * Spectrum dragged onto itself is as much a no-op as a Row is.
+ */
+function reaches(items: readonly unknown[], from: number, to: number): boolean {
+  return from >= 0 && from < items.length && to !== from;
+}
+
+/** The list with one item lifted out and set down at another index. */
+function reordered<T>(items: readonly T[], from: number, to: number): T[] {
+  const next = [...items];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
 }
 
 function replaceRow(palette: Palette, index: number, replace: (row: Row) => Row): Palette {
@@ -196,6 +210,35 @@ export function removeSpectrum(palette: Palette, index: number): Palette {
       return { ...row, stops };
     }),
   };
+}
+
+/** A lone Spectrum has nowhere to go: there is no other place in the strip. */
+export function canMoveSpectrum(palette: Palette): boolean {
+  return palette.spectrums.length > 1;
+}
+
+/**
+ * The index a move along the tab strip actually reaches, the strip's answer to
+ * `destinationIndex`: a drag that runs off either end comes to rest on the end
+ * Spectrum, so it still means what it looks like it means.
+ */
+export function spectrumDestinationIndex(palette: Palette, to: number): number {
+  return within(to, palette.spectrums.length - 1);
+}
+
+/**
+ * Moves a Spectrum to another place in the strip. Order is presentation and
+ * output — the tab strip, the Tile grid's columns, and the order the custom
+ * properties are emitted in — so unlike moving a Row, which redefines what every
+ * Socket number means, this touches nothing about the shared ladder.
+ *
+ * Not a single Row changes: a Stop is held against a Spectrum's id rather than
+ * its place, so the Palette says the same colors in a different order.
+ */
+export function moveSpectrum(palette: Palette, from: number, to: number): Palette {
+  const destination = spectrumDestinationIndex(palette, to);
+  if (!reaches(palette.spectrums, from, destination)) return palette;
+  return { ...palette, spectrums: reordered(palette.spectrums, from, destination) };
 }
 
 /** Sets the prefix, ignoring anything that would not name a custom property. */

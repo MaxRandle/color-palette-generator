@@ -127,3 +127,17 @@ export function selectedRowAfterMoving(
   if (to <= selectedRow && selectedRow < from) return selectedRow + 1;
   return selectedRow;
 }
+
+/**
+ * The same rule again for a Spectrum moved along the tab strip: the Active
+ * Spectrum rides along to its destination when it is the one dragged, and a
+ * Spectrum dragged past it shifts it by the one place the move displaced it by.
+ * Whichever Spectrum was being edited stays the one being edited.
+ */
+export function activeSpectrumAfterMoving(
+  active: number,
+  from: number,
+  to: number,
+): number {
+  return selectedRowAfterMoving(active, from, to);
+}

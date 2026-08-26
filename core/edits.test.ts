@@ -4,9 +4,11 @@ import {
   addSpectrum,
   canRemoveSpectrum,
   canMoveRow,
+  canMoveSpectrum,
   canRemoveRow,
   destinationIndex,
   moveRow,
+  moveSpectrum,
   removeRow,
   removeSpectrum,
   renameSpectrum,
@@ -14,6 +16,7 @@ import {
   setHue,
   setLightness,
   setPrefix,
+  spectrumDestinationIndex,
 } from "./edits";
 import { socketsOf, type Palette } from "./palette";
 
@@ -266,5 +269,69 @@ describe("removeSpectrum", () => {
 
   it("allows removal while more than one Spectrum remains", () => {
     expect(canRemoveSpectrum(two)).toBe(true);
+  });
+});
+
+describe("moveSpectrum", () => {
+  const three = addSpectrum(addSpectrum(palette, "brand"), "brand");
+
+  it("moves a Spectrum down the strip, closing the gap behind it", () => {
+    expect(moveSpectrum(three, 0, 2).spectrums).toEqual([
+      three.spectrums[1],
+      three.spectrums[2],
+      three.spectrums[0],
+    ]);
+  });
+
+  it("moves a Spectrum back up the strip", () => {
+    expect(moveSpectrum(three, 2, 0).spectrums).toEqual([
+      three.spectrums[2],
+      three.spectrums[0],
+      three.spectrums[1],
+    ]);
+  });
+
+  it("leaves every Row alone: a Stop is held against an id, not a place", () => {
+    expect(moveSpectrum(three, 0, 2).rows).toEqual(three.rows);
+  });
+
+  it("holds a destination past either end of the strip at that end", () => {
+    expect(moveSpectrum(three, 1, 9).spectrums).toEqual([
+      three.spectrums[0],
+      three.spectrums[2],
+      three.spectrums[1],
+    ]);
+    expect(moveSpectrum(three, 1, -4).spectrums).toEqual([
+      three.spectrums[1],
+      three.spectrums[0],
+      three.spectrums[2],
+    ]);
+  });
+
+  it("is nothing at all when the Spectrum is already there", () => {
+    expect(moveSpectrum(three, 1, 1)).toBe(three);
+  });
+
+  it("refuses to move the only Spectrum, which has nowhere to go", () => {
+    expect(canMoveSpectrum(palette)).toBe(false);
+    expect(moveSpectrum(palette, 0, 1)).toBe(palette);
+  });
+
+  it("allows a move while more than one Spectrum stands in the strip", () => {
+    expect(canMoveSpectrum(three)).toBe(true);
+  });
+});
+
+describe("spectrumDestinationIndex", () => {
+  const three = addSpectrum(addSpectrum(palette, "brand"), "brand");
+
+  it("names the index a move reaches when the strip holds it", () => {
+    expect(spectrumDestinationIndex(three, 0)).toBe(0);
+    expect(spectrumDestinationIndex(three, 2)).toBe(2);
+  });
+
+  it("comes to rest on the end Spectrum when the pointer runs off the strip", () => {
+    expect(spectrumDestinationIndex(three, 7)).toBe(2);
+    expect(spectrumDestinationIndex(three, -3)).toBe(0);
   });
 });
