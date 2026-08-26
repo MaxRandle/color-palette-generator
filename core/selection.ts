@@ -1,17 +1,27 @@
 /**
- * Which Row the user is working on. Exactly one Row is selected at a time, and
- * the selection outlives the focus that made it, so it is state of its own
+ * What the user is working on: one Row, and one Active Spectrum. A Row is
+ * selected and a Spectrum is Active, and the two move independently — switching
+ * tab keeps the Row, and picking a Row keeps the tab — so they are held as one
+ * pair of indices rather than derived from one another.
+ *
+ * The selection outlives the focus that made it, so it is state of its own
  * rather than something read back off the document.
  */
 
 import type { OklchColor } from "./color";
 import { socketsOf, type Palette, type Socket, type Spectrum } from "./palette";
 
-/** The selected Row, by its index in the ladder. */
-export type Selection = number;
+/** The selected Row and the Active Spectrum, each by its index. */
+export type Selection = {
+  readonly row: number;
+  readonly spectrum: number;
+};
 
-/** A Palette always has at least one Row, so the first one can always be selected. */
-export const INITIAL_SELECTION: Selection = 0;
+/**
+ * A Palette always has at least one Row and at least one Spectrum, so the first
+ * of each can always be selected.
+ */
+export const INITIAL_SELECTION: Selection = { row: 0, spectrum: 0 };
 
 /** The selected Row's numbers: what the Cross-section slices at and reads out. */
 export type Reading = {
@@ -21,12 +31,30 @@ export type Reading = {
 };
 
 /**
- * The index the selection actually names. Removing a Row can leave the selection
- * past the end of the ladder, and exactly one Row is selected at all times, so
- * it comes to rest on the last one.
+ * An index the Palette actually holds. Removing brings the ladder or the tab
+ * strip up short of an index the selection still names, and exactly one of each
+ * is chosen at all times, so a stale index comes to rest on the last element.
  */
-export function selectedIndex(palette: Palette, selection: Selection): Selection {
-  return Math.min(selection, palette.rows.length - 1);
+function heldIndex(index: number, length: number): number {
+  return Math.min(index, length - 1);
+}
+
+/**
+ * The Row index the selection actually names. It clamps against the ladder
+ * alone: a Spectrum coming or going never moves the selected Row.
+ */
+export function selectedRowIndex(palette: Palette, selection: Selection): number {
+  return heldIndex(selection.row, palette.rows.length);
+}
+
+/** The Spectrum index the selection actually names, clamped against the tabs alone. */
+export function activeSpectrumIndex(palette: Palette, selection: Selection): number {
+  return heldIndex(selection.spectrum, palette.spectrums.length);
+}
+
+/** The one Spectrum the ladder is editing and the Cross-section is following. */
+export function activeSpectrum(palette: Palette, selection: Selection): Spectrum {
+  return palette.spectrums[activeSpectrumIndex(palette, selection)];
 }
 
 /**
@@ -37,21 +65,29 @@ export function selectedIndex(palette: Palette, selection: Selection): Selection
  * Removing the selected Row itself leaves the index alone, which lands on the
  * Row that slides up into the Socket it vacated.
  */
-export function selectionAfterRemoving(
-  selection: Selection,
+export function selectedRowAfterRemoving(
+  selectedRow: number,
   removed: number,
-): Selection {
-  return removed < selection ? selection - 1 : selection;
+): number {
+  return removed < selectedRow ? selectedRow - 1 : selectedRow;
+}
+
+/**
+ * The same rule for the tab strip: removing a Spectrum before the Active one
+ * keeps that same Spectrum Active, and removing the Active one lands on
+ * whichever Spectrum slides into its place.
+ */
+export function activeSpectrumAfterRemoving(
+  active: number,
+  removed: number,
+): number {
+  return selectedRowAfterRemoving(active, removed);
 }
 
 /** What the selected Row reads as: its Socket, and the color it authors. */
-export function readingAt(
-  palette: Palette,
-  spectrum: Spectrum,
-  selection: Selection,
-): Reading {
-  const { socket, row } = socketsOf(palette)[selectedIndex(palette, selection)];
-  const stop = row.stops[spectrum.id];
+export function readingAt(palette: Palette, selection: Selection): Reading {
+  const { socket, row } = socketsOf(palette)[selectedRowIndex(palette, selection)];
+  const stop = row.stops[activeSpectrum(palette, selection).id];
   return {
     socket,
     color: { lightness: row.lightness, chroma: stop.chroma, hue: stop.hue },
@@ -63,13 +99,13 @@ export function readingAt(
  * Row the user was working on: the selected Row rides along to its destination,
  * and a Row moved past it shifts it by the one Socket the move displaced it by.
  */
-export function selectionAfterMoving(
-  selection: Selection,
+export function selectedRowAfterMoving(
+  selectedRow: number,
   from: number,
   to: number,
-): Selection {
-  if (selection === from) return to;
-  if (from < selection && selection <= to) return selection - 1;
-  if (to <= selection && selection < from) return selection + 1;
-  return selection;
+): number {
+  if (selectedRow === from) return to;
+  if (from < selectedRow && selectedRow <= to) return selectedRow - 1;
+  if (to <= selectedRow && selectedRow < from) return selectedRow + 1;
+  return selectedRow;
 }

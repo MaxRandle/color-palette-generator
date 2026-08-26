@@ -43,6 +43,19 @@ describe("a code that is not a palette", () => {
     ["a Chroma past the authoring ceiling", "1~color~brand:brand~95,0.8,264"],
     ["a Hue outside a single turn", "1~color~brand:brand~95,0.02,400"],
     ["a Spectrum with no id", "1~color~:brand~95,0.02,264"],
+    ["a Spectrum with no name, which would emit --color--100", "1~color~brand:~95,0.02,264"],
+    [
+      "a Spectrum name that would break the declaration",
+      "1~color~brand:warm%20grey,s2:accent~95,0.02,264,0.1,30",
+    ],
+    [
+      "two Spectrums sharing a name, one of which would overwrite the other",
+      "1~color~brand:warm,s2:warm~95,0.02,264,0.1,30",
+    ],
+    [
+      "two Spectrums sharing an id, whose Stops would collide",
+      "1~color~brand:warm,brand:cool~95,0.02,264,0.1,30",
+    ],
   ])("refuses one %s", (_name, code) => {
     expect(decodePalette(code)).toBeNull();
   });
@@ -61,11 +74,11 @@ describe("what a code carries", () => {
     });
   });
 
-  it("round-trips a prefix and Spectrum names that need escaping", () => {
+  it("round-trips a prefix, a Spectrum id and a name that need escaping", () => {
     const awkward: Palette = {
       ...palette,
       prefix: "márca-tone",
-      spectrums: [{ id: "a~b", name: "warm, grey" }],
+      spectrums: [{ id: "a~b", name: "márca" }],
       rows: [{ lightness: 50, stops: { "a~b": { chroma: 0.1, hue: 30 } } }],
     };
     expect(decodePalette(encodePalette(awkward))).toEqual(awkward);

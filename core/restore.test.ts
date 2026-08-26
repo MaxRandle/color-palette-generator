@@ -11,7 +11,7 @@ const starter: Palette = {
 
 const shared: Palette = {
   prefix: "shared",
-  spectrums: [{ id: "warm", name: "warm, grey" }],
+  spectrums: [{ id: "warm", name: "warm-grey" }],
   rows: [{ lightness: 40, stops: { warm: { chroma: 0.18, hue: 120 } } }],
 };
 

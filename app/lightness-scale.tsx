@@ -10,14 +10,13 @@ import {
   nudgedLightness,
 } from "@/core/lightness-scale";
 import type { Palette } from "@/core/palette";
-import type { Selection } from "@/core/selection";
 
 type LightnessScaleProps = {
   palette: Palette;
   onChange: (palette: Palette) => void;
   /** The Row the Cross-section is following, whose marker is the highlighted one. */
-  selected: Selection;
-  onSelect: (selection: Selection) => void;
+  selected: number;
+  onSelect: (row: number) => void;
 };
 
 /** The shortest the track may be: below this the ladder's spacing stops reading. */

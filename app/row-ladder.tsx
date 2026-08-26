@@ -17,19 +17,18 @@ import {
 } from "@/core/edits";
 import { socketsOf, type Palette, type Spectrum } from "@/core/palette";
 import {
-  selectionAfterMoving,
-  selectionAfterRemoving,
-  type Selection,
+  selectedRowAfterMoving,
+  selectedRowAfterRemoving,
 } from "@/core/selection";
 
 type RowLadderProps = {
   palette: Palette;
-  /** The Spectrum whose Stop each Row edits. v1 has exactly one. */
+  /** The Active Spectrum, whose Stop each Row edits. */
   spectrum: Spectrum;
   onChange: (palette: Palette) => void;
-  /** The Row the Cross-section is following. */
-  selected: Selection;
-  onSelect: (selection: Selection) => void;
+  /** The Row the Cross-section is following, by its index in the ladder. */
+  selected: number;
+  onSelect: (row: number) => void;
 };
 
 const REMOVE_CONTROL = "[data-removes-row]";
@@ -67,7 +66,7 @@ const COLUMNS =
 const HANDLE_HINT = "row-reorder-hint";
 
 /**
- * The ladder of Rows, one per Socket: the Row's own Lightness plus the focused
+ * The ladder of Rows, one per Socket: the Row's own Lightness plus the Active
  * Spectrum's Chroma and Hue. Adding, removing and reordering all renumber the
  * Sockets, because a Socket's number is a property of its position.
  *
@@ -107,7 +106,7 @@ export function RowLadder({
     if (destination === from) return from;
     const moved = moveRow(palette, from, destination);
     onChange(moved);
-    onSelect(selectionAfterMoving(selected, from, destination));
+    onSelect(selectedRowAfterMoving(selected, from, destination));
     const ladder = socketsOf(moved);
     setAnnouncement(
       `Row moved to shade ${ladder[destination].socket.number}, ${destination + 1} of ${ladder.length}.`,
@@ -271,7 +270,7 @@ export function RowLadder({
                 data-removes-row=""
                 onClick={() => {
                   if (removable) {
-                    onSelect(selectionAfterRemoving(selected, index));
+                    onSelect(selectedRowAfterRemoving(selected, index));
                   }
                   onChange(removeRow(palette, index));
                 }}

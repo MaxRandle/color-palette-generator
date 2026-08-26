@@ -7,21 +7,32 @@ import { CopyButton } from "./copy-button";
 import { LadderOrderWarning, LightnessScale } from "./lightness-scale";
 import { PrefixField } from "./prefix-field";
 import { RowLadder } from "./row-ladder";
+import { SpectrumTabs, spectrumTabId } from "./spectrum-tabs";
 import { cellsOf } from "@/core/cells";
 import { formatCss } from "@/core/css";
-import { INITIAL_SELECTION, readingAt, selectedIndex } from "@/core/selection";
+import {
+  activeSpectrum,
+  activeSpectrumIndex,
+  INITIAL_SELECTION,
+  readingAt,
+  selectedRowIndex,
+} from "@/core/selection";
 import { usePersistedPalette } from "./use-persisted-palette";
 import type { Palette } from "@/core/palette";
+
+/** The ladder is the tab strip's panel: one Spectrum is edited at a time. */
+const LADDER_PANEL = "spectrum-ladder";
 
 const HEADING =
   "text-sm font-medium tracking-wide text-zinc-600 uppercase dark:text-zinc-400";
 
 /**
- * Holds the Palette being authored, and which Row the user is working on. The
- * Palette outlives the page: `initialPalette` is only what is shown until the
- * address bar or the last visit is read back.
- * Everything below is derived from the pair on each render, so the tiles, the
- * CSS and the Cross-section follow every keystroke without a sync step.
+ * Holds the Palette being authored, and what the user is working on: one Row,
+ * and one Active Spectrum. The Palette outlives the page: `initialPalette` is
+ * only what is shown until the address bar or the last visit is read back.
+ * Everything below is derived from the two on each render, so the tabs, the
+ * tiles, the CSS and the Cross-section follow every keystroke without a sync
+ * step.
  *
  * The arrangement is what the Cross-section's job demands. It is live feedback
  * while a Row is being typed into, so it may never scroll away: it rides
@@ -39,9 +50,22 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
   const [palette, setPalette] = usePersistedPalette(initialPalette);
   const [selection, setSelection] = useState(INITIAL_SELECTION);
   const css = formatCss(palette);
-  // v1 has one Spectrum, so the Row being followed is read from that one.
-  const spectrum = palette.spectrums[0];
-  const reading = readingAt(palette, spectrum, selection);
+  // Read back through the selection's own rules, so a Row or a Spectrum removed
+  // out from under it leaves it on the last of what remains, not on nothing.
+  const selectedRow = selectedRowIndex(palette, selection);
+  const active = activeSpectrumIndex(palette, selection);
+  const spectrum = activeSpectrum(palette, selection);
+  const reading = readingAt(palette, selection);
+
+  // Each is set against the other's settled value, which is what retires a
+  // stale index: choosing a Row also lands the Active Spectrum for good.
+  function selectRow(row: number): void {
+    setSelection({ row, spectrum: active });
+  }
+
+  function activateSpectrum(index: number): void {
+    setSelection({ row: selectedRow, spectrum: index });
+  }
 
   return (
     <div className="flex w-full flex-col gap-10">
@@ -49,13 +73,18 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
           column is sized in viewport widths rather than fixed: it gives width
           back to the ladder as the window narrows and is only at full size
           where there is room for both. Below `lg` there is not, and the single
-          column is the better of the two layouts anyway.
-          A second and third Spectrum would widen the editing column, standing
-          beside this ladder and sharing the one Lightness scale. */}
+          column is the better of the two layouts anyway. */}
       <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(20rem,42vw,36rem)] lg:items-start lg:gap-8 xl:gap-10">
         <div className="order-2 flex flex-col gap-6 lg:order-1">
           <h2 className={HEADING}>Palette</h2>
           <PrefixField palette={palette} onChange={setPalette} />
+          <SpectrumTabs
+            palette={palette}
+            onChange={setPalette}
+            active={active}
+            onActivate={activateSpectrum}
+            panelId={LADDER_PANEL}
+          />
           {/* The scale belongs to the whole Palette rather than to one Row, so
               it stands beside the ladder rather than sitting inside it, and
               grows with it: the two read the same ladder the same way up. Too
@@ -65,17 +94,24 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
             <LightnessScale
               palette={palette}
               onChange={setPalette}
-              selected={selectedIndex(palette, selection)}
-              onSelect={setSelection}
+              selected={selectedRow}
+              onSelect={selectRow}
             />
-            {/* v1 edits the one Spectrum; with several, selection picks the focused one. */}
-            <div className="w-full min-w-0 sm:flex-1">
+            {/* The ladder alone is the tabs' panel. The scale is not: it carries
+                the Lightness every Spectrum shares, so it belongs to the Palette
+                rather than to whichever tab is showing. */}
+            <div
+              id={LADDER_PANEL}
+              role="tabpanel"
+              aria-labelledby={spectrumTabId(spectrum.id)}
+              className="w-full min-w-0 sm:flex-1"
+            >
               <RowLadder
                 palette={palette}
                 spectrum={spectrum}
                 onChange={setPalette}
-                selected={selectedIndex(palette, selection)}
-                onSelect={setSelection}
+                selected={selectedRow}
+                onSelect={selectRow}
               />
             </div>
           </div>

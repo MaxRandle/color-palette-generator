@@ -1,81 +1,139 @@
 import { describe, expect, it } from "vitest";
 import {
+  activeSpectrum,
+  activeSpectrumAfterRemoving,
+  activeSpectrumIndex,
   readingAt,
-  selectedIndex,
-  selectionAfterMoving,
-  selectionAfterRemoving,
+  selectedRowAfterMoving,
+  selectedRowAfterRemoving,
+  selectedRowIndex,
+  type Selection,
 } from "./selection";
 import type { Palette } from "./palette";
 
-const SPECTRUM = { id: "brand", name: "brand" };
+const BRAND = { id: "brand", name: "brand" };
+const ACCENT = { id: "s2", name: "accent" };
 
 const PALETTE: Palette = {
   prefix: "color",
-  spectrums: [SPECTRUM],
+  spectrums: [BRAND, ACCENT],
   rows: [
-    { lightness: 95, stops: { brand: { chroma: 0.02, hue: 264 } } },
-    { lightness: 60, stops: { brand: { chroma: 0.2, hue: 137 } } },
+    {
+      lightness: 95,
+      stops: { brand: { chroma: 0.02, hue: 264 }, s2: { chroma: 0.05, hue: 30 } },
+    },
+    {
+      lightness: 60,
+      stops: { brand: { chroma: 0.2, hue: 137 }, s2: { chroma: 0.11, hue: 30 } },
+    },
   ],
 };
 
+function at(row: number, spectrum: number): Selection {
+  return { row, spectrum };
+}
+
 describe("readingAt", () => {
   it("reads the selected Row's Socket number, Lightness, Chroma and Hue", () => {
-    expect(readingAt(PALETTE, SPECTRUM, 1)).toEqual({
+    expect(readingAt(PALETTE, at(1, 0))).toEqual({
       socket: { number: 200 },
       color: { lightness: 60, chroma: 0.2, hue: 137 },
     });
   });
 
+  it("reads the Active Spectrum's Stop, so the Cross-section follows the tab", () => {
+    expect(readingAt(PALETTE, at(1, 1)).color).toEqual({
+      lightness: 60,
+      chroma: 0.11,
+      hue: 30,
+    });
+  });
+
   it("reads the last Row when the selected one has been removed", () => {
-    expect(readingAt(PALETTE, SPECTRUM, 2).socket).toEqual({ number: 200 });
+    expect(readingAt(PALETTE, at(2, 0)).socket).toEqual({ number: 200 });
   });
 });
 
-describe("selectedIndex", () => {
+describe("selectedRowIndex", () => {
   it("is the selected position while the ladder holds it", () => {
-    expect(selectedIndex(PALETTE, 0)).toBe(0);
-    expect(selectedIndex(PALETTE, 1)).toBe(1);
+    expect(selectedRowIndex(PALETTE, at(0, 0))).toBe(0);
+    expect(selectedRowIndex(PALETTE, at(1, 0))).toBe(1);
   });
 
   it("falls back to the last Row when the selected one has been removed", () => {
     // Removing a Row renumbers the Sockets below it, so a selection past the
     // end has to land somewhere: exactly one Row is selected at all times.
-    expect(selectedIndex(PALETTE, 2)).toBe(1);
-    expect(selectedIndex(PALETTE, 9)).toBe(1);
+    expect(selectedRowIndex(PALETTE, at(2, 0))).toBe(1);
+    expect(selectedRowIndex(PALETTE, at(9, 0))).toBe(1);
+  });
+
+  it("is unaffected by how many Spectrums the Palette holds", () => {
+    expect(selectedRowIndex(PALETTE, at(1, 9))).toBe(1);
   });
 });
 
-describe("selectionAfterRemoving", () => {
+describe("activeSpectrumIndex", () => {
+  it("is the Active position while the Palette holds it", () => {
+    expect(activeSpectrumIndex(PALETTE, at(0, 0))).toBe(0);
+    expect(activeSpectrumIndex(PALETTE, at(0, 1))).toBe(1);
+  });
+
+  it("comes to rest on the last Spectrum when the Active one has gone", () => {
+    // The Row index and the Spectrum index clamp independently.
+    expect(activeSpectrumIndex(PALETTE, at(9, 5))).toBe(1);
+  });
+
+  it("names the Spectrum the ladder is editing", () => {
+    expect(activeSpectrum(PALETTE, at(0, 1))).toBe(ACCENT);
+    expect(activeSpectrum(PALETTE, at(0, 7))).toBe(ACCENT);
+  });
+});
+
+describe("selectedRowAfterRemoving", () => {
   it("follows the selected Row up the ladder when one above it goes", () => {
     // The Row the user was working on is unchanged; only its Socket is.
-    expect(selectionAfterRemoving(2, 0)).toBe(1);
+    expect(selectedRowAfterRemoving(2, 0)).toBe(1);
   });
 
   it("leaves the selection where it is when a Row below it goes", () => {
-    expect(selectionAfterRemoving(1, 2)).toBe(1);
+    expect(selectedRowAfterRemoving(1, 2)).toBe(1);
   });
 
   it("stays put when the selected Row itself goes, taking the one that slides up", () => {
-    expect(selectionAfterRemoving(1, 1)).toBe(1);
+    expect(selectedRowAfterRemoving(1, 1)).toBe(1);
   });
 });
 
-describe("selectionAfterMoving", () => {
+describe("activeSpectrumAfterRemoving", () => {
+  it("keeps the same Spectrum Active when one before it goes", () => {
+    expect(activeSpectrumAfterRemoving(2, 0)).toBe(1);
+  });
+
+  it("leaves the Active Spectrum alone when one after it goes", () => {
+    expect(activeSpectrumAfterRemoving(1, 2)).toBe(1);
+  });
+
+  it("lands on whichever slides into its place when the Active one goes", () => {
+    expect(activeSpectrumAfterRemoving(1, 1)).toBe(1);
+  });
+});
+
+describe("selectedRowAfterMoving", () => {
   it("rides along with the selected Row into its new Socket", () => {
-    expect(selectionAfterMoving(0, 0, 2)).toBe(2);
-    expect(selectionAfterMoving(2, 2, 0)).toBe(0);
+    expect(selectedRowAfterMoving(0, 0, 2)).toBe(2);
+    expect(selectedRowAfterMoving(2, 2, 0)).toBe(0);
   });
 
   it("follows the selected Row up when a Row above it is moved below it", () => {
-    expect(selectionAfterMoving(2, 0, 3)).toBe(1);
+    expect(selectedRowAfterMoving(2, 0, 3)).toBe(1);
   });
 
   it("follows the selected Row down when a Row below it is moved above it", () => {
-    expect(selectionAfterMoving(1, 3, 0)).toBe(2);
+    expect(selectedRowAfterMoving(1, 3, 0)).toBe(2);
   });
 
   it("leaves the selection alone when the move happens clear of it", () => {
-    expect(selectionAfterMoving(0, 1, 2)).toBe(0);
-    expect(selectionAfterMoving(3, 0, 1)).toBe(3);
+    expect(selectedRowAfterMoving(0, 1, 2)).toBe(0);
+    expect(selectedRowAfterMoving(3, 0, 1)).toBe(3);
   });
 });

@@ -6,6 +6,7 @@
 
 import { CHROMA_MAX, FULL_TURN, LIGHTNESS_MAX } from "./color";
 import { prefixError } from "./prefix";
+import { mintSpectrum, spectrumNameError } from "./spectrum";
 import type { Palette, Row, Stop } from "./palette";
 
 /**
@@ -126,6 +127,75 @@ export function setHue(
     ...stop,
     hue: wrapHue(hue),
   }));
+}
+
+/**
+ * Adds a Spectrum, copying one already in the Palette Stop for Stop at every
+ * Row. A ramp is authored by nudging a neighbour rather than from zero, the
+ * same way a Row is, and the copy is what leaves the new Spectrum's name as the
+ * only thing distinguishing it.
+ *
+ * The Stops are shared rather than cloned, which is safe because every edit
+ * replaces a Stop instead of mutating it.
+ */
+export function addSpectrum(palette: Palette, copyOfId: string): Palette {
+  const minted = mintSpectrum(palette.spectrums);
+  return {
+    ...palette,
+    spectrums: [...palette.spectrums, minted],
+    rows: palette.rows.map((row) => ({
+      ...row,
+      stops: { ...row.stops, [minted.id]: row.stops[copyOfId] },
+    })),
+  };
+}
+
+/**
+ * Renames a Spectrum, ignoring anything that would not name a custom property
+ * or that another Spectrum already holds. The id is untouched, so every Row's
+ * Stops stay where they are and a Palette code already shared stays valid.
+ */
+export function renameSpectrum(
+  palette: Palette,
+  id: string,
+  name: string,
+): Palette {
+  if (spectrumNameError(palette.spectrums, id, name) !== null) return palette;
+  return {
+    ...palette,
+    spectrums: palette.spectrums.map((spectrum) =>
+      spectrum.id === id ? { ...spectrum, name } : spectrum,
+    ),
+  };
+}
+
+/** A Palette is a Palette of colors, so the final Spectrum cannot be removed. */
+export function canRemoveSpectrum(palette: Palette): boolean {
+  return palette.spectrums.length > 1;
+}
+
+/**
+ * Removes a Spectrum, and with it the Stop every Row held against it. Nothing
+ * about the ladder changes: the Rows keep their Lightness and their Sockets
+ * keep their numbers, since a Spectrum never contributed either.
+ *
+ * By position, as removing a Row is, and unlike the edits that reach for a
+ * Stop: what goes is chosen from the tab strip, and the rule for where the
+ * Active Spectrum lands afterwards is written in the same positions.
+ */
+export function removeSpectrum(palette: Palette, index: number): Palette {
+  if (!canRemoveSpectrum(palette)) return palette;
+  const removed = palette.spectrums[index];
+  if (removed === undefined) return palette;
+  return {
+    ...palette,
+    spectrums: palette.spectrums.filter((_, at) => at !== index),
+    rows: palette.rows.map((row) => {
+      const stops = { ...row.stops };
+      delete stops[removed.id];
+      return { ...row, stops };
+    }),
+  };
 }
 
 /** Sets the prefix, ignoring anything that would not name a custom property. */

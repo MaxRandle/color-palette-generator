@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   addRow,
+  addSpectrum,
+  canRemoveSpectrum,
   canMoveRow,
   canRemoveRow,
   destinationIndex,
   moveRow,
   removeRow,
+  removeSpectrum,
+  renameSpectrum,
   setChroma,
   setHue,
   setLightness,
@@ -192,5 +196,75 @@ describe("destinationIndex", () => {
   it("comes to rest on the end Row when the destination runs off the ladder", () => {
     expect(destinationIndex(palette, 7)).toBe(1);
     expect(destinationIndex(palette, -3)).toBe(0);
+  });
+});
+
+describe("addSpectrum", () => {
+  const two = addSpectrum(palette, "brand");
+
+  it("appends the new Spectrum after the ones already there", () => {
+    expect(two.spectrums).toHaveLength(2);
+    expect(two.spectrums[0]).toEqual(brand);
+    expect(two.spectrums[1].id).toBe("s2");
+  });
+
+  it("copies the Spectrum it was added from at every Row", () => {
+    expect(two.rows.map((row) => row.stops.s2)).toEqual([
+      { chroma: 0.02, hue: 264 },
+      { chroma: 0.2, hue: 264 },
+    ]);
+  });
+
+  it("leaves the Stops it copied untouched", () => {
+    expect(two.rows.map((row) => row.stops.brand)).toEqual(
+      palette.rows.map((row) => row.stops.brand),
+    );
+  });
+
+  it("copies whichever Spectrum it was told to, not the first", () => {
+    const accented = renameSpectrum(two, "s2", "accent");
+    const three = addSpectrum(setChroma(accented, 0, "s2", 0.3), "s2");
+    expect(three.rows[0].stops.s3).toEqual({ chroma: 0.3, hue: 264 });
+  });
+});
+
+describe("renameSpectrum", () => {
+  const two = addSpectrum(palette, "brand");
+
+  it("renames the Spectrum without touching a single Stop", () => {
+    const renamed = renameSpectrum(two, "s2", "accent");
+    expect(renamed.spectrums[1]).toEqual({ id: "s2", name: "accent" });
+    expect(renamed.rows).toEqual(two.rows);
+  });
+
+  it("refuses a name that would not name a custom property", () => {
+    expect(renameSpectrum(two, "s2", "warm grey")).toBe(two);
+    expect(renameSpectrum(two, "s2", "")).toBe(two);
+  });
+
+  it("refuses a name another Spectrum already holds", () => {
+    expect(renameSpectrum(two, "s2", "brand")).toBe(two);
+  });
+});
+
+describe("removeSpectrum", () => {
+  const two = addSpectrum(palette, "brand");
+
+  it("drops the Spectrum and its Stop from every Row", () => {
+    const left = removeSpectrum(two, 0);
+    expect(left.spectrums.map((spectrum) => spectrum.id)).toEqual(["s2"]);
+    expect(left.rows.map((row) => row.stops)).toEqual([
+      { s2: { chroma: 0.02, hue: 264 } },
+      { s2: { chroma: 0.2, hue: 264 } },
+    ]);
+  });
+
+  it("refuses to remove the final Spectrum", () => {
+    expect(canRemoveSpectrum(palette)).toBe(false);
+    expect(removeSpectrum(palette, 0)).toBe(palette);
+  });
+
+  it("allows removal while more than one Spectrum remains", () => {
+    expect(canRemoveSpectrum(two)).toBe(true);
   });
 });

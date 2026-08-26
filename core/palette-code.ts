@@ -7,6 +7,7 @@
 
 import { CHROMA_MAX, FULL_TURN, LIGHTNESS_MAX } from "./color";
 import { prefixError } from "./prefix";
+import { spectrumNameError } from "./spectrum";
 import type { Palette, Row, Spectrum, Stop } from "./palette";
 
 /**
@@ -81,11 +82,21 @@ function decodeAngle(text: string): number | null {
   return angle === null || angle === FULL_TURN ? null : angle;
 }
 
-function decodeSpectrum(field: string): Spectrum | null {
+/**
+ * A Spectrum the app could have written, read against the ones already decoded.
+ * A name is held to the same rule as the field the user types into: it is a
+ * fragment of every custom property the Spectrum emits, so a code carrying one
+ * that is not a CSS identifier — or one a Spectrum already decoded holds —
+ * would load a Palette that emits a broken block. Ids have to be distinct for a
+ * plainer reason: two Spectrums sharing one share every Row's Stop.
+ */
+function decodeSpectrum(field: string, decoded: readonly Spectrum[]): Spectrum | null {
   const parts = field.split(PAIR);
   if (parts.length !== 2) return null;
   const [id, name] = parts.map(decodeText);
-  if (id === null || name === null || id === "" || name === "") return null;
+  if (id === null || name === null || id === "") return null;
+  if (decoded.some((spectrum) => spectrum.id === id)) return null;
+  if (spectrumNameError(decoded, id, name) !== null) return null;
   return { id, name };
 }
 
@@ -130,7 +141,7 @@ export function decodePalette(code: string): Palette | null {
 
   const spectrums: Spectrum[] = [];
   for (const field of spectrumField.split(ITEM)) {
-    const spectrum = decodeSpectrum(field);
+    const spectrum = decodeSpectrum(field, spectrums);
     if (spectrum === null) return null;
     spectrums.push(spectrum);
   }
