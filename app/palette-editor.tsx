@@ -8,7 +8,6 @@ import { LadderOrderWarning, LightnessScale } from "./lightness-scale";
 import { PrefixField } from "./prefix-field";
 import { RowLadder } from "./row-ladder";
 import { SpectrumTabs, spectrumTabId } from "./spectrum-tabs";
-import { cellsOf } from "@/core/cells";
 import { formatCss } from "@/core/css";
 import {
   activeSpectrum,
@@ -19,6 +18,7 @@ import {
 } from "@/core/selection";
 import { usePersistedPalette } from "./use-persisted-palette";
 import type { Palette } from "@/core/palette";
+import type { Selection } from "@/core/selection";
 
 /** The ladder is the tab strip's panel: one Spectrum is edited at a time. */
 const LADDER_PANEL = "spectrum-ladder";
@@ -65,6 +65,13 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
 
   function activateSpectrum(index: number): void {
     setSelection({ row: selectedRow, spectrum: index });
+  }
+
+  // A Tile stands at a Row and a Spectrum at once, so it names both rather than
+  // setting one against the other's settled value: clicking a Tile in another
+  // Spectrum's column moves the tab and the ladder in the one action.
+  function selectTile(tile: Selection): void {
+    setSelection(tile);
   }
 
   return (
@@ -140,14 +147,17 @@ export function PaletteEditor({ initialPalette }: { initialPalette: Palette }) {
         </section>
       </div>
 
-      {/* One strip per Spectrum: with several, they stack here in the same
-          order they stand in above. */}
-      {palette.spectrums.map((spectrum) => (
-        <section key={spectrum.id} className="flex flex-col gap-3">
-          <h2 className={HEADING}>{spectrum.name}</h2>
-          <ColorTiles cells={cellsOf(palette, spectrum)} />
-        </section>
-      ))}
+      {/* Every Spectrum at once, which the ladder above cannot show: a column
+          per Spectrum, a row per Shade, and each Tile a way back into the
+          ladder editing the color it shows. */}
+      <section className="flex flex-col gap-3">
+        <h2 className={HEADING}>Tiles</h2>
+        <ColorTiles
+          palette={palette}
+          selection={selection}
+          onSelect={selectTile}
+        />
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4">

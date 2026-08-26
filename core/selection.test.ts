@@ -3,6 +3,7 @@ import {
   activeSpectrum,
   activeSpectrumAfterRemoving,
   activeSpectrumIndex,
+  heldSelection,
   readingAt,
   selectedRowAfterMoving,
   selectedRowAfterRemoving,
@@ -135,5 +136,27 @@ describe("selectedRowAfterMoving", () => {
   it("leaves the selection alone when the move happens clear of it", () => {
     expect(selectedRowAfterMoving(0, 1, 2)).toBe(0);
     expect(selectedRowAfterMoving(3, 0, 1)).toBe(3);
+  });
+});
+
+describe("heldSelection", () => {
+  it("leaves a pair the Palette holds alone", () => {
+    expect(heldSelection(PALETTE, at(1, 1))).toEqual(at(1, 1));
+  });
+
+  it("comes to rest on the last Row and the last Spectrum, rather than wrapping", () => {
+    expect(heldSelection(PALETTE, at(7, 4))).toEqual(at(1, 1));
+  });
+
+  it("clamps a step off the top edge to the first Row", () => {
+    expect(heldSelection(PALETTE, at(-1, 0))).toEqual(at(0, 0));
+  });
+
+  it("clamps a step off the left edge to the first Spectrum", () => {
+    expect(heldSelection(PALETTE, at(0, -1))).toEqual(at(0, 0));
+  });
+
+  it("clamps each index against its own axis", () => {
+    expect(heldSelection(PALETTE, at(9, -1))).toEqual(at(1, 0));
   });
 });

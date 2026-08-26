@@ -34,9 +34,14 @@ export type Reading = {
  * An index the Palette actually holds. Removing brings the ladder or the tab
  * strip up short of an index the selection still names, and exactly one of each
  * is chosen at all times, so a stale index comes to rest on the last element.
+ *
+ * The near end is held the same way, which is what lets a caller name the
+ * neighbour of an index without first asking whether there is one: a step off
+ * the edge of the Tile grid comes to rest on the edge rather than wrapping to
+ * the far side of the Palette.
  */
 function heldIndex(index: number, length: number): number {
-  return Math.min(index, length - 1);
+  return Math.max(Math.min(index, length - 1), 0);
 }
 
 /**
@@ -50,6 +55,19 @@ export function selectedRowIndex(palette: Palette, selection: Selection): number
 /** The Spectrum index the selection actually names, clamped against the tabs alone. */
 export function activeSpectrumIndex(palette: Palette, selection: Selection): number {
   return heldIndex(selection.spectrum, palette.spectrums.length);
+}
+
+/**
+ * The pair the Palette actually holds, each index clamped against its own axis.
+ * The Tile grid moves in both at once, so it names the Tile it means — a Row
+ * above, a Spectrum to the left — and lets the clamps decide whether that Tile
+ * exists.
+ */
+export function heldSelection(palette: Palette, selection: Selection): Selection {
+  return {
+    row: selectedRowIndex(palette, selection),
+    spectrum: activeSpectrumIndex(palette, selection),
+  };
 }
 
 /** The one Spectrum the ladder is editing and the Cross-section is following. */
